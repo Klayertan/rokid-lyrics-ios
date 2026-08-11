@@ -248,7 +248,7 @@ final class AudioSessionDiagnosticsMonitor {
         if options.contains(.interruptSpokenAudioAndMixWithOthers) {
             names.append("interruptSpokenAudioAndMixWithOthers")
         }
-        if options.contains(.allowBluetoothHFP) { names.append("allowBluetoothHFP") }
+        if options.contains(.allowBluetooth) { names.append("allowBluetooth") }
         if options.contains(.allowBluetoothA2DP) { names.append("allowBluetoothA2DP") }
         if options.contains(.allowAirPlay) { names.append("allowAirPlay") }
         if options.contains(.defaultToSpeaker) { names.append("defaultToSpeaker") }
