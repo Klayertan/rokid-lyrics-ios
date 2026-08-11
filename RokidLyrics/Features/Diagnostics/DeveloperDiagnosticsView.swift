@@ -7,6 +7,29 @@ struct DeveloperDiagnosticsView: View {
 
     var body: some View {
         List {
+            Section("Device validation") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(model.compiledBuildModeText)
+                        .font(.headline)
+                        .foregroundStyle(model.isRealRokidSDKCompiled ? .orange : .mint)
+                    Text("Active runtime: \(model.activeRuntimeModeText)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                NavigationLink {
+                    PhysicalDeviceDiagnosticsView(model: model)
+                } label: {
+                    Label("Physical iPhone Tests", systemImage: "iphone.gen3.radiowaves.left.and.right")
+                }
+
+                NavigationLink {
+                    RokidHardwareTestView(model: model)
+                } label: {
+                    Label("Rokid Hardware Test", systemImage: "eyeglasses")
+                }
+            }
+
             Section("Live state") {
                 LabeledContent("Rokid", value: model.connectionStateText)
                 LabeledContent("Recognition", value: model.recognitionStateText)
@@ -19,6 +42,9 @@ struct DeveloperDiagnosticsView: View {
                     "Offset",
                     value: "\(model.syncOffsetSeconds.formatted(.number.precision(.fractionLength(2)))) s"
                 )
+                LabeledContent("Audio source", value: model.activeAudioSourceName)
+                LabeledContent("Audio category", value: model.audioSessionDiagnostics.snapshot.category)
+                LabeledContent("Audio route", value: safeRouteTypes)
             }
 
             Section("Normalized metadata") {
@@ -44,7 +70,7 @@ struct DeveloperDiagnosticsView: View {
                     copied = true
                 } label: {
                     Label(
-                        copied ? "Copied" : "Copy structured diagnostics",
+                        copied ? "COPIED" : "COPY DIAGNOSTICS",
                         systemImage: copied ? "checkmark" : "doc.on.doc")
                 }
             } header: {
@@ -55,6 +81,13 @@ struct DeveloperDiagnosticsView: View {
         }
         .navigationTitle("Diagnostics")
         .navigationBarTitleDisplayMode(.inline)
-        .onChange(of: model.diagnosticsJSON) { _, _ in copied = false }
+        .task { await model.refreshDeviceDiagnostics() }
+    }
+
+    private var safeRouteTypes: String {
+        let snapshot = model.audioSessionDiagnostics.snapshot
+        let inputs = snapshot.inputs.map(\.type).joined(separator: ",")
+        let outputs = snapshot.outputs.map(\.type).joined(separator: ",")
+        return "in=[\(inputs)]; out=[\(outputs)]"
     }
 }

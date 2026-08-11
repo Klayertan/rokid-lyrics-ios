@@ -95,6 +95,9 @@
 
         private var audioContinuation: RokidPCMStream.Continuation?
         private var audioChannelCount: Int?
+        private(set) var diagnosticSnapshot = RokidHardwareDiagnosticSnapshot()
+        private var diagnosticSequence = 0
+        private let diagnosticsStartedAt = ProcessInfo.processInfo.systemUptime
 
         init(appDisplayName: String = "Rokid Lyrics") throws {
             let outcome = CxrClient.initialize(
@@ -119,6 +122,8 @@
             self.link = link
             session = link.makeCustomViewSession(aiInterceptMode: .allowWithPause)
             bindEvents()
+            diagnosticSnapshot.authorization = "SDK initialized; authorization not started"
+            appendDiagnostic(category: "sdk", detail: "RGCxrClient initialized in CustomView mode")
         }
 
         /// Starts the SDK's supported authorization flow. There is no public
@@ -127,17 +132,27 @@
         func connect() async throws {
             if linkConnected {
                 connectionState = .connected
+                diagnosticSnapshot.connection = "Connected"
+                appendDiagnostic(category: "connection", detail: "Connect reused the active link")
                 return
             }
 
             if connectionState != .connecting {
                 explicitlyDisconnected = false
                 connectionState = .connecting
+                diagnosticSnapshot.connection = "Connecting"
+                diagnosticSnapshot.authorization = "Authorization requested"
+                appendDiagnostic(category: "connection", detail: "Connect requested")
                 do {
                     try await authenticate()
+                    diagnosticSnapshot.authorization = "Authorization completion succeeded"
+                    appendDiagnostic(category: "authorization", detail: "Authorization completion succeeded")
                 } catch {
                     let safeError = error as? RokidCXRAdapterError ?? .authenticationFailed
                     connectionState = .failed(message: safeError.localizedDescription)
+                    diagnosticSnapshot.connection = "Failed"
+                    diagnosticSnapshot.authorization = "Authorization failed"
+                    appendDiagnostic(category: "authorization", detail: "Authorization completion failed")
                     throw safeError
                 }
             }
@@ -145,11 +160,16 @@
             do {
                 try await waitForLinkConnection()
                 connectionState = .connected
+                diagnosticSnapshot.connection = "Connected"
             } catch is CancellationError {
                 connectionState = .disconnected
+                diagnosticSnapshot.connection = "Disconnected"
+                appendDiagnostic(category: "connection", detail: "Connect was cancelled")
                 throw CancellationError()
             } catch {
                 connectionState = .failed(message: RokidCXRAdapterError.connectionTimedOut.localizedDescription)
+                diagnosticSnapshot.connection = "Timed out"
+                appendDiagnostic(category: "connection", detail: "Connection timed out")
                 throw error
             }
         }
@@ -158,12 +178,19 @@
         /// callback). The URL is forwarded directly and is never logged or stored.
         @discardableResult
         func handleOpenURL(_ url: URL) -> Bool {
-            link.handleOpenURL(url)
+            let handled = link.handleOpenURL(url)
+            appendDiagnostic(
+                category: "authorization",
+                detail: handled ? "Authorization callback handled" : "Authorization callback not handled"
+            )
+            return handled
         }
 
         func disconnect() async {
             explicitlyDisconnected = true
             connectionState = .disconnecting
+            diagnosticSnapshot.connection = "Disconnecting"
+            appendDiagnostic(category: "connection", detail: "Disconnect requested")
             let pendingReopen = reopenTask
             pendingReopen?.cancel()
             if let pendingReopen { await pendingReopen.value }
@@ -186,6 +213,12 @@
             customViewOpen = false
             lastSentUpdateJSON = nil
             connectionState = .disconnected
+            diagnosticSnapshot.connection = "Disconnected"
+            diagnosticSnapshot.authorization = "Cleared after explicit disconnect"
+            diagnosticSnapshot.session = "Unavailable"
+            diagnosticSnapshot.customView = "Closed"
+            diagnosticSnapshot.audioStream = "Stopped"
+            appendDiagnostic(category: "connection", detail: "Disconnect completed")
         }
 
         func send(_ payload: RokidCustomViewPayload) async throws {
@@ -232,6 +265,7 @@
                 throw RokidCXRAdapterError.notConnected
             }
             try await closeCustomView()
+            appendDiagnostic(category: "display", detail: "Clear display completed")
         }
 
         func startPCMStream() async throws -> RokidPCMStream {
@@ -244,12 +278,16 @@
             let pair = RokidPCMStream.makeStream(bufferingPolicy: .bufferingNewest(64))
             audioChannelCount = nil
             audioContinuation = pair.continuation
+            diagnosticSnapshot.audioStream = "Start requested"
+            appendDiagnostic(category: "audio", detail: "Glasses PCM start requested")
             pair.continuation.onTermination = { @Sendable [weak self] _ in
                 Task { @MainActor in self?.stopPCMStream() }
             }
 
             if let error = session.media.startAudioStream(codec: .pcm, mode: .antClose) {
                 audioContinuation = nil
+                diagnosticSnapshot.audioStream = "Start failed"
+                appendDiagnostic(category: "audio", detail: "Glasses PCM start failed")
                 pair.continuation.finish(throwing: mapAudioError(error))
                 throw mapAudioError(error)
             }
@@ -262,6 +300,8 @@
             audioChannelCount = nil
             _ = session.media.stopAudioStream()
             continuation.finish()
+            diagnosticSnapshot.audioStream = "Stopped"
+            appendDiagnostic(category: "audio", detail: "Glasses PCM stopped")
         }
 
         private func bindEvents() {
@@ -287,7 +327,7 @@
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] event in
                     MainActor.assumeIsolated {
-                        self?.handleSessionState(event.state)
+                        self?.handleSessionState(event)
                     }
                 }
                 .store(in: &cancellables)
@@ -380,6 +420,8 @@
             }
             customViewOpen = true
             lastSentUpdateJSON = payload.updateJSON
+            diagnosticSnapshot.customView = "Open"
+            appendDiagnostic(category: "display", detail: "CustomView open callback succeeded")
         }
 
         private func updateCustomView(_ updateJSON: String) async throws {
@@ -402,6 +444,7 @@
                     gate.fail(mapDisplayError(immediateError))
                 }
             }
+            appendDiagnostic(category: "display", detail: "CustomView update callback succeeded")
         }
 
         private func closeCustomView() async throws {
@@ -426,12 +469,16 @@
             }
             customViewOpen = false
             lastSentUpdateJSON = nil
+            diagnosticSnapshot.customView = "Closed"
+            appendDiagnostic(category: "display", detail: "CustomView close callback succeeded")
         }
 
         private func handleLinkConnectionChange(_ connected: Bool) {
             linkConnected = connected
             if connected {
                 connectionState = .connected
+                diagnosticSnapshot.connection = "Connected callback"
+                appendDiagnostic(category: "connection-callback", detail: "BLE connection callback: connected")
                 scheduleReopenIfNeeded()
             } else {
                 customViewOpen = false
@@ -440,24 +487,58 @@
                 if connectionState != .connecting {
                     connectionState = .disconnected
                 }
+                diagnosticSnapshot.connection = "Disconnected callback"
+                diagnosticSnapshot.customView = "Closed"
+                diagnosticSnapshot.audioStream = "Stopped"
+                appendDiagnostic(category: "connection-callback", detail: "BLE connection callback: disconnected")
             }
         }
 
         private func handleAuthorizationEvent(_ event: RGCxrClientAuthEvent) {
             switch event {
-            case .authenticationFailed, .tokenExpired:
+            case let .stateChanged(state):
+                let stateText: String
+                switch state {
+                case .notAuthenticated: stateText = "Not authenticated"
+                case .authenticating: stateText = "Authenticating"
+                case .authenticated: stateText = "Authenticated"
+                case .expired: stateText = "Expired"
+                case .failed: stateText = "Failed"
+                @unknown default: stateText = "Unknown"
+                }
+                diagnosticSnapshot.authorization = stateText
+                appendDiagnostic(category: "authorization-callback", detail: "Authorization state: \(stateText)")
+            case .authenticationSucceeded:
+                diagnosticSnapshot.authorization = "Succeeded"
+                appendDiagnostic(category: "authorization-callback", detail: "Authorization succeeded")
+            case .authenticationFailed:
+                diagnosticSnapshot.authorization = "Failed"
+                appendDiagnostic(category: "authorization-callback", detail: "Authorization failed")
                 if !linkConnected {
                     connectionState = .failed(message: RokidCXRAdapterError.authenticationFailed.localizedDescription)
                 }
-            case .stateChanged, .authenticationSucceeded:
-                break
+            case .tokenExpired:
+                diagnosticSnapshot.authorization = "Token expired"
+                appendDiagnostic(category: "authorization-callback", detail: "Authorization expired")
+                if !linkConnected {
+                    connectionState = .failed(message: RokidCXRAdapterError.authenticationFailed.localizedDescription)
+                }
             @unknown default:
-                break
+                diagnosticSnapshot.authorization = "Unknown callback"
+                appendDiagnostic(category: "authorization-callback", detail: "Unknown authorization callback")
             }
         }
 
-        private func handleSessionState(_ state: RGCxrSessionState) {
-            switch state {
+        private func handleSessionState(_ event: RGCxrSessionStateEvent) {
+            diagnosticSnapshot.session =
+                event.reason.map {
+                    "\(event.state.rawValue) (\($0.rawValue))"
+                } ?? event.state.rawValue
+            appendDiagnostic(
+                category: "session-callback",
+                detail: "Session state: \(diagnosticSnapshot.session)"
+            )
+            switch event.state {
             case .started, .available:
                 break
             case .paused:
@@ -477,17 +558,26 @@
             switch event {
             case .opened:
                 customViewOpen = true
+                diagnosticSnapshot.customView = "Opened callback"
+                appendDiagnostic(category: "display-callback", detail: "CustomView opened")
             case .closed:
                 customViewOpen = false
                 lastSentUpdateJSON = nil
-            case .updated, .iconsSent:
-                break
+                diagnosticSnapshot.customView = "Closed callback"
+                appendDiagnostic(category: "display-callback", detail: "CustomView closed")
+            case .updated:
+                diagnosticSnapshot.customView = "Updated callback"
+                appendDiagnostic(category: "display-callback", detail: "CustomView updated")
+            case .iconsSent:
+                appendDiagnostic(category: "display-callback", detail: "CustomView icons sent")
             case .error:
                 // The SDK message may contain implementation data. Do not retain or
                 // surface it; the per-operation callback remains authoritative.
-                break
+                diagnosticSnapshot.customView = "Error callback"
+                appendDiagnostic(category: "display-callback", detail: "CustomView error callback")
             @unknown default:
-                break
+                diagnosticSnapshot.customView = "Unknown callback"
+                appendDiagnostic(category: "display-callback", detail: "Unknown CustomView callback")
             }
         }
 
@@ -497,16 +587,43 @@
             case let .started(info):
                 let channelCount = Int(info.channels)
                 audioChannelCount = channelCount
+                diagnosticSnapshot.audioStream = "Started (\(channelCount) channel(s))"
+                appendDiagnostic(
+                    category: "audio-callback",
+                    detail: "Glasses PCM started with \(channelCount) channel(s)"
+                )
                 audioContinuation.yield(.started(channelCount: channelCount))
             case let .stream(packet):
                 // SDK timestamp units are undocumented. The audio adapter assigns
                 // a local monotonic receipt timestamp instead of guessing.
                 guard let audioChannelCount else { return }
+                diagnosticSnapshot.audioStream = "Receiving PCM"
                 audioContinuation.yield(
                     .packet(packet.data, channelCount: audioChannelCount)
                 )
             @unknown default:
-                break
+                diagnosticSnapshot.audioStream = "Unknown callback"
+                appendDiagnostic(category: "audio-callback", detail: "Unknown glasses audio callback")
+            }
+        }
+
+        private func appendDiagnostic(category: String, detail: String) {
+            diagnosticSequence += 1
+            diagnosticSnapshot.events.append(
+                RokidHardwareDiagnosticEvent(
+                    sequence: diagnosticSequence,
+                    elapsedSeconds: max(
+                        0,
+                        ProcessInfo.processInfo.systemUptime - diagnosticsStartedAt
+                    ),
+                    category: category,
+                    detail: detail
+                )
+            )
+            if diagnosticSnapshot.events.count > 100 {
+                diagnosticSnapshot.events.removeFirst(
+                    diagnosticSnapshot.events.count - 100
+                )
             }
         }
 
@@ -535,6 +652,8 @@
             audioContinuation = nil
             audioChannelCount = nil
             continuation.finish(throwing: error)
+            diagnosticSnapshot.audioStream = "Interrupted"
+            appendDiagnostic(category: "audio-callback", detail: "Glasses PCM interrupted")
         }
 
         private func mapDisplayError(_ error: RGCxrClientError) -> RokidCXRAdapterError {
