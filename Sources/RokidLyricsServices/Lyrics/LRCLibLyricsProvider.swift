@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 import RokidLyricsCore
 
@@ -24,6 +24,16 @@ public enum LRCLibError: Error, Equatable, LocalizedError, Sendable {
 /// Runtime-only LRCLIB client for the documented `/api/search` endpoint.
 /// It deliberately does not publish lyrics or download the database.
 public struct LRCLibLyricsProvider: LyricsProvider, Sendable {
+    public static let productionBaseURL: URL = {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "lrclib.net"
+        guard let url = components.url else {
+            preconditionFailure("The compile-time LRCLIB endpoint is invalid")
+        }
+        return url
+    }()
+
     private struct Record: Decodable {
         let id: Int
         let trackName: String
@@ -43,7 +53,7 @@ public struct LRCLibLyricsProvider: LyricsProvider, Sendable {
     private let userAgent: String
 
     public init(
-        baseURL: URL = URL(string: "https://lrclib.net")!,
+        baseURL: URL = LRCLibLyricsProvider.productionBaseURL,
         client: any HTTPClient = URLSessionHTTPClient(),
         cache: (any LyricsCache)? = nil,
         userAgent: String = "RokidLyrics/0.1.0 (https://github.com/Klayertan/rokid-lyrics-ios)"
@@ -60,10 +70,12 @@ public struct LRCLibLyricsProvider: LyricsProvider, Sendable {
             return cached
         }
 
-        guard var components = URLComponents(
-            url: baseURL.appendingPathComponent("api/search"),
-            resolvingAgainstBaseURL: false
-        ) else {
+        guard
+            var components = URLComponents(
+                url: baseURL.appendingPathComponent("api/search"),
+                resolvingAgainstBaseURL: false
+            )
+        else {
             throw LRCLibError.invalidEndpoint
         }
 

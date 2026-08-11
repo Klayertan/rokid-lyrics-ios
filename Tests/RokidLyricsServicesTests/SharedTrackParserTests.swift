@@ -15,6 +15,7 @@ struct SharedTrackParserTests {
 
         #expect(draft.title == "Test Song")
         #expect(draft.artist == "Test Artist")
+        #expect(draft.schemaVersion == 1)
         #expect(!draft.requiresConfirmation)
     }
 

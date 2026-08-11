@@ -7,6 +7,7 @@ public enum SharedTrackParseQuality: String, Codable, Equatable, Sendable {
 }
 
 public struct SharedTrackDraft: Codable, Equatable, Sendable {
+    public let schemaVersion: Int
     public var title: String?
     public var artist: String?
     public var url: URL?
@@ -19,6 +20,7 @@ public struct SharedTrackDraft: Codable, Equatable, Sendable {
     }
 
     public init(
+        schemaVersion: Int = 1,
         title: String?,
         artist: String?,
         url: URL?,
@@ -26,6 +28,7 @@ public struct SharedTrackDraft: Codable, Equatable, Sendable {
         parseQuality: SharedTrackParseQuality,
         receivedAt: Date = Date()
     ) {
+        self.schemaVersion = schemaVersion
         self.title = title
         self.artist = artist
         self.url = url
@@ -74,7 +77,8 @@ public enum SharedTrackParser {
         }
 
         if meaningfulLines.count == 1,
-           let pair = splitSingleLine(meaningfulLines[0]) {
+            let pair = splitSingleLine(meaningfulLines[0])
+        {
             return SharedTrackDraft(
                 title: pair.title,
                 artist: pair.artist,
@@ -117,4 +121,3 @@ public enum SharedTrackParser {
         return url
     }
 }
-

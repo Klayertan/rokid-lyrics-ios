@@ -28,7 +28,8 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         heading.adjustsFontForContentSizeCategory = true
 
         let explanation = UILabel()
-        explanation.text = "Confirm the song details. Shared URLs are kept only as a reference; Rokid Lyrics does not inspect YouTube Music internally."
+        explanation.text =
+            "Confirm the song details. Shared URLs are kept only as a reference; Rokid Lyrics does not inspect YouTube Music internally."
         explanation.font = .preferredFont(forTextStyle: .body)
         explanation.textColor = .secondaryLabel
         explanation.numberOfLines = 0
@@ -103,21 +104,32 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
     private func load(provider: NSItemProvider, type: UTType) {
         pendingLoads += 1
         provider.loadItem(forTypeIdentifier: type.identifier, options: nil) { [weak self] item, _ in
+            let loadedURL: URL?
+            let loadedText: String?
+            if type == .url {
+                if let url = item as? URL {
+                    loadedURL = url
+                } else if let value = item as? String {
+                    loadedURL = URL(string: value)
+                } else {
+                    loadedURL = nil
+                }
+                loadedText = nil
+            } else {
+                loadedURL = nil
+                if let value = item as? String, !value.isEmpty {
+                    loadedText = value
+                } else if let value = item as? NSAttributedString, !value.string.isEmpty {
+                    loadedText = value.string
+                } else {
+                    loadedText = nil
+                }
+            }
+
             DispatchQueue.main.async {
                 guard let self else { return }
-                if type == .url {
-                    if let url = item as? URL {
-                        self.sharedURL = url
-                    } else if let value = item as? String {
-                        self.sharedURL = URL(string: value)
-                    }
-                } else if type == .plainText {
-                    if let value = item as? String, !value.isEmpty {
-                        self.sharedText = value
-                    } else if let value = item as? NSAttributedString, !value.string.isEmpty {
-                        self.sharedText = value.string
-                    }
-                }
+                if let loadedURL { self.sharedURL = loadedURL }
+                if let loadedText { self.sharedText = loadedText }
                 self.pendingLoads -= 1
                 if self.pendingLoads == 0 { self.applyParsedDraft() }
             }
@@ -128,9 +140,11 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         let draft = SharedTrackParser.parse(text: sharedText, url: sharedURL)
         titleField.text = draft.title
         artistField.text = draft.artist
-        sourceLabel.text = draft.url.map { "Shared link: \($0.absoluteString)" }
+        sourceLabel.text =
+            draft.url.map { "Shared link: \($0.absoluteString)" }
             ?? "No supported web link was supplied."
-        statusLabel.text = draft.requiresConfirmation
+        statusLabel.text =
+            draft.requiresConfirmation
             ? "Please verify or complete both fields before saving."
             : "Song details were supplied explicitly."
         updateSaveButton()
