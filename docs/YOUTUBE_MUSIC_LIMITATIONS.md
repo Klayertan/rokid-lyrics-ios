@@ -48,7 +48,7 @@ The current `PhoneMicrophoneAudioCaptureService`:
 
 Apple says `.playAndRecord` supports simultaneous input and output and that `.mixWithOthers` allows the session to mix with audio from background apps. See [`playAndRecord`](https://developer.apple.com/documentation/avfaudio/avaudiosession/category-swift.struct/playandrecord) and [`mixWithOthers`](https://developer.apple.com/documentation/avfaudio/avaudiosession/categoryoptions-swift.struct/mixwithothers). Apple describes `.defaultToSpeaker` as changing the default route from the receiver to the built-in speaker: [`defaultToSpeaker`](https://developer.apple.com/documentation/avfaudio/avaudiosession/categoryoptions-swift.struct/defaulttospeaker).
 
-Those documented category semantics are not a substitute for a device experiment. As of 2026-08-11, this repository has **not** verified on a physical iPhone whether activating this exact session while YouTube Music is playing:
+Those documented category semantics are not a substitute for a device experiment. As of 2026-08-12, this repository has **not** verified on a physical iPhone whether activating this exact session while YouTube Music is playing:
 
 - keeps playback running;
 - pauses or ducks it;
@@ -57,11 +57,13 @@ Those documented category semantics are not a substitute for a device experiment
 - supplies audio with enough quality for ShazamKit;
 - behaves consistently across current iPhone and iOS versions.
 
-The app currently reports the active route for diagnostics, but it does not explicitly select a preferred microphone and does not yet implement full route-change/interruption recovery.
+The **Physical iPhone Tests** screen records the public session category/mode/options, route port types, selected input type, sample rate/channels, other-audio flags, route-change/interruption notifications, and microphone state. It also lets the human tester record whether playback continued, ducked, paused, rerouted, or became inaudible. Those controls collect observations; they cannot determine audible quality automatically. The app does not explicitly select a preferred microphone and does not yet implement full route-change/interruption recovery.
 
 Most importantly, the input tap captures the selected microphone/input route; it is not a digital tap into YouTube Music. If music is playing only in headphones, the phone microphone may not hear it. Speaker playback may be acoustically available to the microphone, but recognition quality and echo/routing behavior remain physical-device test items.
 
-An SDK-enabled non-mock build conditionally uses the verified CXR-L PCM media interface through `RokidMicrophoneAudioCaptureService` instead of `AVAudioEngine`. That source has compiled against the actual client APIs but has not been linked into an app bundle or run on glasses. It still supplies ambient microphone audio—not YouTube Music state or a digital player tap—and its effect on YouTube Music playback, Bluetooth routing, background behavior, and recognition quality is entirely untested.
+An SDK-enabled non-mock build conditionally uses the verified CXR-L PCM media interface through `RokidMicrophoneAudioCaptureService` instead of `AVAudioEngine`. That source is included in the target-mode app that linked and embedded the genuine `RGCxrClient`/`RGCoreKit`/`CocoaLumberjack` dependency graph. The validation app was unsigned, unlaunched, and built with the asset catalog excluded only to bypass the local `actool` failure; the ordinary hardware workspace build remains blocked by the missing iOS 26.5 platform. The source still supplies ambient microphone audio—not YouTube Music state or a digital player tap—and its effect on YouTube Music playback, Bluetooth routing, background behavior, and recognition quality is entirely untested.
+
+Use [`YOUTUBE_MUSIC_DEVICE_TEST.md`](YOUTUBE_MUSIC_DEVICE_TEST.md) for the controlled same-iPhone experiment and a fresh copy of [`DEVICE_TEST_SESSION.md`](DEVICE_TEST_SESSION.md) to record each run. A compile, link, diagnostic label, or expected-result paragraph is never evidence that coexistence succeeded.
 
 ## Foreground and background behavior
 
@@ -110,6 +112,8 @@ The hardware test should record, without publishing private account data:
 7. whether the user-confirmation UI behaves safely for incomplete data.
 
 Tests should inform parser fixtures, but the app must continue to confirm uncertain metadata rather than lock onto an undocumented format.
+
+The device-diagnostics screen also provides an explicit **LIVE LRCLIB TEST** after the tester enters title and artist. It bypasses the app's normal lyrics cache for that request and reports candidate metadata, match scores, and synchronized/plain/instrumental availability without displaying or copying lyric bodies. It never runs automatically or in CI, and no successful live request has yet been recorded.
 
 ## Supported fallback workflows
 

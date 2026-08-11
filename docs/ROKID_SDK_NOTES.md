@@ -1,14 +1,17 @@
 # Rokid CXR-L iOS SDK notes
 
-Last verified: 2026-08-11
+Last verified: 2026-08-12
 
 ## Status and evidence boundary
 
-The repository has an optional, strongly isolated adapter for Rokid's real iOS SDK. The runtime selects it only when the app was compiled with `ROKID_SDK_AVAILABLE`, `RGCxrClient` can be imported, and the user turns off Mock Mode; otherwise it uses `MockRokidDisplayTransport` and the phone-microphone capture service. The conditional adapter and app wiring have been compiled for an arm64 iPhoneOS target against the official `RGCxrClient.framework` interface described below. The complete app has **not** been linked with the real `RGCoreKit` dependency, signed and installed on an iPhone, connected to glasses, or hardware-tested. Those distinctions are intentional.
+The repository has an optional, strongly isolated adapter for Rokid's real iOS SDK. The runtime selects it only when the app was compiled with `ROKID_SDK_AVAILABLE`, `RGCxrClient` can be imported, and the user turns off Mock Mode; otherwise it uses `MockRokidDisplayTransport` and the phone-microphone capture service.
+
+On 2026-08-12 the application sources at this validation milestone were compiled and linked as an unsigned arm64 iPhoneOS application against the genuine CocoaPods dependency graph: `RGCxrClient` 1.0.4, `RGCoreKit` 0.0.2, and `CocoaLumberjack` 3.9.1. CocoaPods embedded all three real frameworks and the resulting app executable records all three in its Mach-O load commands. This was a target-mode validation build with `Assets.xcassets` excluded solely because this Mac has no installed iOS runtime for `actool`; the normal workspace/scheme build could not start because Xcode marked the generic iOS destination ineligible. The build was **not** code-signed, installed, launched, authorized, connected to glasses, or hardware-tested. Those distinctions are intentional and are detailed under [Compilation and link evidence](#compilation-and-link-evidence).
 
 The findings in this document come from these official artifacts:
 
 - Rokid's public CocoaPods spec for [`RGCxrClient` 1.0.4](https://cdn.cocoapods.org/Specs/b/d/c/RGCxrClient/1.0.4/RGCxrClient.podspec.json).
+- CocoaPods Trunk's live [`RGCxrClient` metadata](https://trunk.cocoapods.org/api/v1/pods/RGCxrClient) and [`RGCoreKit` metadata](https://trunk.cocoapods.org/api/v1/pods/RGCoreKit).
 - The framework archive linked by that spec: [`RGCxrClient_1.0.4.2.framework.zip`](https://rokid-ota.oss-cn-hangzhou.aliyuncs.com/toB/Rokid_Glass/SDK/CXR-L%28iOS%29/release/RGCxrClient_1.0.4.2.framework.zip).
 - Rokid's official [`ios_cxr_l_sample.zip`](https://rokid-ota.oss-cn-hangzhou.aliyuncs.com/toB/Document/CXR-L/v1.0.4/iOS/ios_cxr_l_sample.zip), including its `Podfile`, `Podfile.lock`, `CXRClientDemo`, `modules/RGCxr/RGCxrClient/API.md`, public Swift declarations, and implementation sources.
 - Rokid's [developer community agreement](https://developer.rokid.com/docs/4-TermsAndAgreements/community-service-agreement.html).
@@ -28,9 +31,16 @@ Local paths shown below identify the exact extracted research artifacts used for
 | Official sample resolution | `RGCxrClient (1.0.4.2)` | Official sample `Podfile` and `Podfile.lock` |
 | Framework bundle version | `CFBundleShortVersionString = 1.0.4` | Framework `Info.plist` |
 | Required dependency | `RGCoreKit = 0.0.2` | Public RGCxrClient spec and official sample `Podfile.lock`; see the public [`RGCoreKit` 0.0.2 spec](https://cdn.cocoapods.org/Specs/6/e/9/RGCoreKit/0.0.2/RGCoreKit.podspec.json) |
+| Resolved logging dependency | `CocoaLumberjack/Swift` 3.9.1 | `RGCoreKit` spec declares `CocoaLumberjack/Swift`; the 2026-08-12 generated `Podfile.lock` and official sample lockfile resolve 3.9.1 |
 | Framework architecture | arm64 iPhoneOS only; no simulator slice | Framework Mach-O and `Modules/RGCxrClient.swiftmodule/arm64-apple-ios.*` |
 | Binary minimum OS | iOS 16.0 | Framework `Info.plist` `MinimumOSVersion` and Swift interface target `arm64-apple-ios16.0` |
 | Binary build tool | Xcode 26.5 / iPhoneOS 26.5 SDK | Framework `Info.plist`: `DTXcode=2650`, `DTSDKName=iphoneos26.5` |
+
+As observed through the live CocoaPods Trunk endpoints on 2026-08-12, `RGCxrClient` has published versions 1.0.1 and 1.0.4, with 1.0.4 current; `RGCoreKit` has versions 0.0.1 and 0.0.2, with 0.0.2 current. [Sources: CocoaPods Trunk [`RGCxrClient`](https://trunk.cocoapods.org/api/v1/pods/RGCxrClient) and [`RGCoreKit`](https://trunk.cocoapods.org/api/v1/pods/RGCoreKit) metadata.]
+
+The public RGCoreKit 0.0.2 podspec obtains its sources from [`gingerjin93/RGCoreKit`](https://github.com/gingerjin93/RGCoreKit) at tag 0.0.2; that tag resolved to commit `65916682436df5e3b512b0e7d67d3d7ca7f573b6` during this verification. Its CocoaLumberjack/Swift dependency has no version constraint in the podspec, so the exact 3.9.1 version above is the lockfile result for this validation rather than a version promised by RGCoreKit. [Source: public [`RGCoreKit` 0.0.2 podspec](https://cdn.cocoapods.org/Specs/6/e/9/RGCoreKit/0.0.2/RGCoreKit.podspec.json); resolved Git tag and generated validation lockfile.]
+
+`RGCxrClient` is not a self-contained framework. Its public Swift interface explicitly imports `RGCoreKit`, and `otool -L RGCxrClient.framework/RGCxrClient` records `@rpath/RGCoreKit.framework/RGCoreKit`. A consuming application must therefore compile and embed the genuine RGCoreKit dependency as well as the RGCxrClient binary; a placeholder Swift module is not sufficient to produce a valid runtime link. [Sources: distributed framework `arm64-apple-ios.swiftinterface`; distributed framework Mach-O load commands; public RGCxrClient podspec dependency declaration.]
 
 There is a packaging inconsistency worth preserving: the public pod is called 1.0.4, its downloaded filename contains 1.0.4.2, and the sample lockfile resolves 1.0.4.2, while the bundled source-tree `modules/RGCxr/RGCxrClient.podspec` is stale at 1.0.3. This project therefore identifies the tested artifact as **public pod 1.0.4 / archive revision 1.0.4.2**, rather than pretending these version fields are identical. [Sources: public podspec; official sample `Podfile.lock`; official sample `modules/RGCxr/RGCxrClient.podspec`; framework `Info.plist`.]
 
@@ -42,6 +52,13 @@ For reproducibility, the downloaded files inspected on 2026-08-11 had these hash
 ```
 
 These hashes record what was inspected; Rokid could replace a file served at the same URL later.
+
+The live CocoaPods JSON specs cached on 2026-08-12 had these hashes:
+
+```text
+b684553fe689e4d03572a0a75d1803a219345bf2771e9503bcf888191d043f64  RGCxrClient/1.0.4/RGCxrClient.podspec.json
+47ba8e444a3dccbab866b034c7a614fb31eecd91ecd96b02bc736d06b1c00a5f  RGCoreKit/0.0.2/RGCoreKit.podspec.json
+```
 
 ### Deployment target discrepancy
 
@@ -62,7 +79,7 @@ end
 
 Then run `pod install` and open the generated workspace. `RGCoreKit 0.0.2` is a declared transitive dependency; it in turn declares `CocoaLumberjack/Swift`. [Sources: public `RGCxrClient` and `RGCoreKit` podspecs.]
 
-`Config/AppDebug.xcconfig` and `Config/AppRelease.xcconfig` contain optional includes for CocoaPods' generated app-target settings. This preserves the repository's custom base configuration without leaking the device-only SDK into the Share Extension. Run `pod install` again after regenerating the Xcode project.
+`Config/Podfile.hardware.example` maps the repository's normal, Mock, and Rokid Hardware configurations. `Config/AppRokidHardwareDebug.xcconfig` and `Config/AppRokidHardwareRelease.xcconfig` contain optional includes for CocoaPods' matching generated app-target settings. This preserves the repository's custom base configuration without leaking the device-only SDK into the Share Extension. Regenerate the project first, copy the example to a local `Podfile`, run `pod install`, and open `RokidLyrics.xcworkspace`. [Sources: repository configuration files; CocoaPods-generated target support files from the 2026-08-12 validation.]
 
 Do not copy the framework into this repository. Enable the adapter only for an iPhoneOS configuration that both links the locally installed pod and defines `ROKID_SDK_AVAILABLE` in `SWIFT_ACTIVE_COMPILATION_CONDITIONS`. The code is additionally guarded with `canImport(RGCxrClient)`, so mock builds remain independent of the proprietary artifact.
 
@@ -229,27 +246,134 @@ The optional implementation uses these exact verified APIs:
 
 No SDK type escapes `RokidCXRCoordinator`, `CXRLRokidDisplayTransport`, or `RokidMicrophoneAudioCaptureService`.
 
-## Compilation evidence
+## Compilation and link evidence
 
-The SDK-neutral package/tests build without any Rokid binary. Separately, on 2026-08-11 the three real-adapter sources passed strict Swift 6 type-checking for `arm64-apple-ios17.0` with Xcode 26.6 against the extracted real framework:
+### Toolchain and genuine dependency resolution
 
-```sh
-xcrun swiftc -typecheck \
-  -target arm64-apple-ios17.0 \
-  -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk \
-  -swift-version 6 \
-  -strict-concurrency=complete \
-  -D ROKID_SDK_AVAILABLE \
-  -I /tmp/rokid-adapter-typecheck \
-  -F /tmp/rgcxr-framework.oYS60a \
-  RokidLyrics/Services/Rokid/RokidCXRCoordinator.swift \
-  RokidLyrics/Services/Rokid/CXRLRokidDisplayTransport.swift \
-  RokidLyrics/Services/Audio/RokidMicrophoneAudioCaptureService.swift
+The 2026-08-12 validation used:
+
+```text
+macOS host: 27.0 (26A5378j)
+Xcode: 26.6 (17F113)
+iPhoneOS SDK: 26.5
+Swift: 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)
+XcodeGen: 2.46.0
+CocoaPods: 1.17.0
+Ruby: 4.0.6
 ```
 
-The same conditional sources plus `AppModel` runtime selection and URL routing were subsequently compiled—not merely parsed—into a 2,253,688-byte arm64 iPhoneOS object at `/private/tmp/rokid-lyrics-final-device.0z6yC0/RokidLyrics.o`.
+The latest test was performed in the fresh disposable copy `/tmp/rokid-genuine-current.7N6SKw`; no pod, workspace, framework, or build product was added to the repository. `xcodegen generate` created the project and `Config/Podfile.hardware.example` was copied to the temporary root as `Podfile`. Immediately before and after the build, recursive byte comparisons found no differences between the live workspace and the snapshot's `RokidLyrics`, `RokidLyricsShareExtension`, `Sources`, and `Config` trees or `project.yml`.
 
-Because the RGCxrClient binary interface imports `RGCoreKit`, these temporary validation directories contained iPhoneOS modules for this repository plus a typecheck-only empty `RGCoreKit` module. This proves that the adapter signatures and conditional app wiring compile against the real RGCxrClient public interface. It does **not** prove a complete app link, runtime dependency loading, code signing, device installation, authorization, display rendering, or microphone streaming. A full device build must install the real `RGCoreKit 0.0.2` dependency through CocoaPods.
+A clean `pod install --repo-update` resolved the public graph but Rokid's artifact host reset this environment's `RGCxrClient` archive transfer after approximately 61 seconds. That network failure is not evidence that the pod or URL is generally unavailable. To finish a byte-for-byte genuine link test without a substitute module or binary, the validation used the previously preserved 824,748-byte archive downloaded from the exact `source.http` URL in the public podspec:
+
+```text
+3dd722e595d0b94321453ec989dc1bd90813bb4080aef598e01e4aa3c2e1a243  /tmp/r.bin
+3dd722e595d0b94321453ec989dc1bd90813bb4080aef598e01e4aa3c2e1a243  /tmp/RGCxrClient_1.0.4.2.framework.zip
+```
+
+The official 1.0.4 podspec was copied into the disposable build and changed only as follows:
+
+```diff
+- "http": "https://rokid-ota.oss-cn-hangzhou.aliyuncs.com/toB/Rokid_Glass/SDK/CXR-L%28iOS%29/release/RGCxrClient_1.0.4.2.framework.zip"
++ "http": "file:///tmp/RGCxrClient_1.0.4.2.framework.zip"
+```
+
+The temporary Podfile selected that copied spec with:
+
+```ruby
+pod 'RGCxrClient', :podspec => 'LocalSpecs/RGCxrClient.podspec.json'
+```
+
+No other podspec field changed. `pod install` then installed the real archive plus the genuine public-source dependencies and generated this lock graph:
+
+```text
+RGCxrClient 1.0.4 -> RGCoreKit 0.0.2 -> CocoaLumberjack/Swift 3.9.1
+```
+
+The installed RGCxrClient executable has SHA-256 `4e3458248127386d97703fe9072c83775115b1578db4a2f379671bf811829a6e`, identical to the executable extracted independently at `/tmp/rgcxr-framework.oYS60a/RGCxrClient.framework/RGCxrClient`. [Sources: public RGCxrClient and RGCoreKit podspec URLs above; generated `/tmp/rokid-genuine-current.7N6SKw/Podfile.lock`; hashes and file comparison recorded during the local validation.]
+
+### Exact build results
+
+The normal requested workspace command was attempted first:
+
+```sh
+xcodebuild \
+  -workspace RokidLyrics.xcworkspace \
+  -scheme 'Rokid Lyrics Hardware' \
+  -configuration Rokid-Hardware-Debug \
+  -destination 'generic/platform=iOS' \
+  -derivedDataPath /tmp/rokid-genuine-current.7N6SKw/DerivedData \
+  CODE_SIGNING_ALLOWED=NO \
+  CODE_SIGNING_REQUIRED=NO \
+  build
+```
+
+It exited 70 before compilation because this Xcode installation reported no eligible generic iOS destination: `Any iOS Device` was ineligible with `iOS 26.5 is not installed`. `xcodebuild -showsdks` can see the iPhoneOS 26.5 SDK files, but `xcrun simctl list runtimes` reports no installed runtimes. A target-mode build confirmed that `actool` also fails with `No available simulator runtimes for platform iphonesimulator`. This is a local Xcode component/runtime limitation, not a successful workspace build and not an observed defect in the Rokid framework.
+
+To validate every Swift source, genuine framework link, and CocoaPods embed phase despite that local `actool` blocker, the real pod targets were built first with:
+
+```sh
+xcodebuild \
+  -project Pods/Pods.xcodeproj \
+  -target Pods-RokidLyrics \
+  -configuration Rokid-Hardware-Debug \
+  -sdk iphoneos \
+  CONFIGURATION_BUILD_DIR=/tmp/rokid-genuine-current.7N6SKw/FinalEmbeddedBuild \
+  OBJROOT=/tmp/rokid-genuine-current.7N6SKw/FinalEmbeddedObj \
+  SYMROOT=/tmp/rokid-genuine-current.7N6SKw/FinalEmbeddedSym \
+  CODE_SIGNING_ALLOWED=NO \
+  CODE_SIGNING_REQUIRED=NO \
+  build
+```
+
+That command built `CocoaLumberjack`, the genuine `RGCoreKit`, the genuine vendored `RGCxrClient`, and the `Pods-RokidLyrics` aggregate successfully for arm64 iPhoneOS. The application target was then built with the same product roots:
+
+```sh
+xcodebuild \
+  -project RokidLyrics.xcodeproj \
+  -target RokidLyrics \
+  -configuration Rokid-Hardware-Debug \
+  -sdk iphoneos \
+  CONFIGURATION_BUILD_DIR=/tmp/rokid-genuine-current.7N6SKw/FinalEmbeddedBuild \
+  OBJROOT=/tmp/rokid-genuine-current.7N6SKw/FinalEmbeddedObj \
+  SYMROOT=/tmp/rokid-genuine-current.7N6SKw/FinalEmbeddedSym \
+  CODE_SIGNING_ALLOWED=NO \
+  CODE_SIGNING_REQUIRED=NO \
+  EXCLUDED_SOURCE_FILE_NAMES=Assets.xcassets \
+  ASSETCATALOG_COMPILER_APPICON_NAME= \
+  build
+```
+
+This second command succeeded. The two asset settings were command-line-only and existed solely to bypass the missing local runtime in `actool`; they were not written into project configuration. All app and Share Extension Swift sources compiled, including the conditional Rokid coordinator, display transport, and glasses-microphone service. The final app link explicitly passed `-framework CocoaLumberjack -framework RGCoreKit -framework RGCxrClient`, and CocoaPods' embed phase copied all three genuine frameworks into the app.
+
+The unsigned bundle exists at:
+
+```text
+/tmp/rokid-genuine-current.7N6SKw/FinalEmbeddedBuild/Rokid Lyrics.app
+```
+
+Recorded artifact sizes were:
+
+| Artifact | Size |
+| --- | ---: |
+| App bundle, allocated size reported by `du` | 9,132 KiB |
+| `Rokid Lyrics` arm64 executable | 4,782,264 bytes |
+| Embedded `RGCxrClient` executable | 1,817,144 bytes |
+| Embedded `RGCoreKit` executable | 650,160 bytes |
+| Embedded `CocoaLumberjack` executable | 593,312 bytes |
+| Embedded Share Extension executable | 1,466,784 bytes |
+
+`vtool` identifies the app executable as platform iOS, minimum iOS 17.0, SDK 26.5. `otool -L` records these genuine runtime dependencies:
+
+```text
+@rpath/CocoaLumberjack.framework/CocoaLumberjack
+@rpath/RGCoreKit.framework/RGCoreKit
+@rpath/RGCxrClient.framework/RGCxrClient
+```
+
+The embedded RGCxrClient executable's SHA-256 remains `4e3458248127386d97703fe9072c83775115b1578db4a2f379671bf811829a6e`. `codesign -dvv` reports `code object is not signed at all`, as expected from the command. A separate minimal arm64 iOS 17 link probe referencing `CxrClient.shared` also linked against these same three real frameworks; its Mach-O load commands record all three.
+
+This proves that the current adapter and application sources compile and link against the genuine public SDK dependency chain, and that CocoaPods can embed the real frameworks. It does **not** prove a normal asset-complete workspace build on this Mac, code signing, installation, launch, Rokid AI authorization, BLE connection, display rendering, glasses microphone streaming, background behavior, or any hardware result. Earlier 2026-08-11 interface-only checks are superseded by this genuine link evidence and are not counted as the current validation.
 
 ## Remaining blockers and unanswered questions
 
