@@ -199,7 +199,7 @@ final class LyricsSynchronizationEngineTests: XCTestCase {
             lines: [
                 LyricLine(id: 0, timestamp: 1, text: "First test line"),
                 LyricLine(id: 1, timestamp: 2, text: "Second test line"),
-                LyricLine(id: 2, timestamp: 4, text: "Third test line")
+                LyricLine(id: 2, timestamp: 4, text: "Third test line"),
             ]
         )
     }

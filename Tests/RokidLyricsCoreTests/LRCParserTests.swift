@@ -98,4 +98,3 @@ final class LRCParserTests: XCTestCase {
         XCTAssertEqual(document.embeddedOffsetSeconds, 0.25, accuracy: 0.000_1)
     }
 }
-

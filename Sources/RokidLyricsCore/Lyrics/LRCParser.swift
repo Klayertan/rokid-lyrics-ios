@@ -133,4 +133,3 @@ public struct LRCParser: Sendable {
         return Double(wholeSeconds) + (Double(fractionalValue) / denominator)
     }
 }
-

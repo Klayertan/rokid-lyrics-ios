@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 import Testing
 @testable import RokidLyricsServices
@@ -110,12 +110,12 @@ private func makeResponse(
     data: Data = Data()
 ) throws -> HTTPResponse {
     guard let url = request.url,
-          let response = HTTPURLResponse(
-              url: url,
-              statusCode: status,
-              httpVersion: "HTTP/1.1",
-              headerFields: headers
-          )
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: status,
+            httpVersion: "HTTP/1.1",
+            headerFields: headers
+        )
     else {
         throw URLError(.badServerResponse)
     }

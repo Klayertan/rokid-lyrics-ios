@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 
 public struct HTTPResponse: @unchecked Sendable {
@@ -84,8 +84,8 @@ public final class URLSessionHTTPClient: HTTPClient, @unchecked Sendable {
                 // retry window, return the response error without another call.
                 let retryFitsWindow = retryAfter.map { $0 <= maximumRetryDelay } ?? true
                 guard attempt < maximumRetryCount,
-                      Self.isRetryable(response.statusCode),
-                      retryFitsWindow
+                    Self.isRetryable(response.statusCode),
+                    retryFitsWindow
                 else {
                     throw error
                 }
@@ -136,7 +136,7 @@ public final class URLSessionHTTPClient: HTTPClient, @unchecked Sendable {
         guard let error = error as? URLError else { return false }
         switch error.code {
         case .timedOut, .cannotFindHost, .cannotConnectToHost, .networkConnectionLost,
-             .dnsLookupFailed, .notConnectedToInternet, .internationalRoamingOff:
+            .dnsLookupFailed, .notConnectedToInternet, .internationalRoamingOff:
             return true
         case .cancelled:
             return false

@@ -53,25 +53,25 @@ public actor PhoneMicrophoneAudioCaptureService: AudioCaptureService {
         guard engine == nil else { throw AudioCaptureError.captureAlreadyRunning }
         guard await requestPermission() else { throw AudioCaptureError.permissionDenied }
 
-#if os(iOS)
-        let session = AVAudioSession.sharedInstance()
-        var options: AVAudioSession.CategoryOptions = []
-        if configuration.mixWithOtherAudio { options.insert(.mixWithOthers) }
-        if configuration.preferSpeakerOutput { options.insert(.defaultToSpeaker) }
-        try session.setCategory(.playAndRecord, mode: .default, options: options)
-        try session.setActive(true)
-#endif
+        #if os(iOS)
+            let session = AVAudioSession.sharedInstance()
+            var options: AVAudioSession.CategoryOptions = []
+            if configuration.mixWithOtherAudio { options.insert(.mixWithOthers) }
+            if configuration.preferSpeakerOutput { options.insert(.defaultToSpeaker) }
+            try session.setCategory(.playAndRecord, mode: .default, options: options)
+            try session.setActive(true)
+        #endif
 
         let audioEngine = AVAudioEngine()
         let input = audioEngine.inputNode
         let format = input.outputFormat(forBus: 0)
         guard format.channelCount > 0, format.sampleRate > 0 else {
-#if os(iOS)
-            try? AVAudioSession.sharedInstance().setActive(
-                false,
-                options: .notifyOthersOnDeactivation
-            )
-#endif
+            #if os(iOS)
+                try? AVAudioSession.sharedInstance().setActive(
+                    false,
+                    options: .notifyOthersOnDeactivation
+                )
+            #endif
             throw AudioCaptureError.invalidInputFormat
         }
 
@@ -96,12 +96,12 @@ public actor PhoneMicrophoneAudioCaptureService: AudioCaptureService {
         } catch {
             input.removeTap(onBus: 0)
             streamContinuation.finish(throwing: error)
-#if os(iOS)
-            try? AVAudioSession.sharedInstance().setActive(
-                false,
-                options: .notifyOthersOnDeactivation
-            )
-#endif
+            #if os(iOS)
+                try? AVAudioSession.sharedInstance().setActive(
+                    false,
+                    options: .notifyOthersOnDeactivation
+                )
+            #endif
             throw AudioCaptureError.engineStartFailed(error.localizedDescription)
         }
 
@@ -123,23 +123,23 @@ public actor PhoneMicrophoneAudioCaptureService: AudioCaptureService {
         continuation = nil
         streamContinuation?.finish()
 
-#if os(iOS)
-        try? AVAudioSession.sharedInstance().setActive(
-            false,
-            options: .notifyOthersOnDeactivation
-        )
-#endif
+        #if os(iOS)
+            try? AVAudioSession.sharedInstance().setActive(
+                false,
+                options: .notifyOthersOnDeactivation
+            )
+        #endif
     }
 
     public func currentRouteDescription() -> String {
-#if os(iOS)
-        let route = AVAudioSession.sharedInstance().currentRoute
-        let inputs = route.inputs.map { "\($0.portName) [\($0.portType.rawValue)]" }
-        let outputs = route.outputs.map { "\($0.portName) [\($0.portType.rawValue)]" }
-        return "input=\(inputs.joined(separator: ", ")); output=\(outputs.joined(separator: ", "))"
-#else
-        return "Default system audio input"
-#endif
+        #if os(iOS)
+            let route = AVAudioSession.sharedInstance().currentRoute
+            let inputs = route.inputs.map { "\($0.portName) [\($0.portType.rawValue)]" }
+            let outputs = route.outputs.map { "\($0.portName) [\($0.portType.rawValue)]" }
+            return "input=\(inputs.joined(separator: ", ")); output=\(outputs.joined(separator: ", "))"
+        #else
+            return "Default system audio input"
+        #endif
     }
 
     private func requestPermission() async -> Bool {
@@ -201,4 +201,3 @@ public actor PhoneMicrophoneAudioCaptureService: AudioCaptureService {
         )
     }
 }
-

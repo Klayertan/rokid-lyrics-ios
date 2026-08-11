@@ -54,7 +54,7 @@ final class LyricsMatchingTests: XCTestCase {
         let cases = [
             ("日本語の曲", "日本語歌手"),
             ("中文歌曲", "中文歌手"),
-            ("한국어 노래", "한국어 가수")
+            ("한국어 노래", "한국어 가수"),
         ]
 
         for (title, artist) in cases {
@@ -121,13 +121,15 @@ final class LyricsMatchingTests: XCTestCase {
         let query = LyricsQuery(title: "Synthetic Song", artist: "Test Artist")
         let candidates = [
             candidate(id: "a", title: "Synthetic Song", artist: "Test Artist"),
-            candidate(id: "b", title: "Synthetic Song", artist: "Test Artist")
+            candidate(id: "b", title: "Synthetic Song", artist: "Test Artist"),
         ]
 
-        guard case let .ambiguous(results) = scorer.selectBest(
-            query: query,
-            candidates: candidates
-        ) else {
+        guard
+            case let .ambiguous(results) = scorer.selectBest(
+                query: query,
+                candidates: candidates
+            )
+        else {
             return XCTFail("Expected ambiguity")
         }
         XCTAssertEqual(results.map(\.candidate.id), ["a", "b"])
@@ -151,4 +153,3 @@ final class LyricsMatchingTests: XCTestCase {
         )
     }
 }
-

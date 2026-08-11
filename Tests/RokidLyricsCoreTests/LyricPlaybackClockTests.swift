@@ -47,4 +47,3 @@ final class LyricPlaybackClockTests: XCTestCase {
         XCTAssertEqual(clock.position(at: 1_000), 0)
     }
 }
-

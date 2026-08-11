@@ -12,11 +12,12 @@ public actor UserDefaultsSyncCorrectionStore: SyncCorrectionStore {
     ) {
         self.defaults = defaults
         self.storageKey = storageKey
-        corrections = defaults.dictionary(forKey: storageKey)?.reduce(into: [:]) { result, pair in
-            if let value = pair.value as? NSNumber {
-                result[pair.key] = value.doubleValue
-            }
-        } ?? [:]
+        corrections =
+            defaults.dictionary(forKey: storageKey)?.reduce(into: [:]) { result, pair in
+                if let value = pair.value as? NSNumber {
+                    result[pair.key] = value.doubleValue
+                }
+            } ?? [:]
     }
 
     public func correction(forTrackID trackID: String) -> TimeInterval? {

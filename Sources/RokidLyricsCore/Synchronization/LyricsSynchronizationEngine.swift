@@ -261,10 +261,12 @@ public actor LyricsSynchronizationEngine {
         with playbackPosition: TimeInterval
     ) async throws {
         guard let timeline else { throw LyricsSynchronizationEngineError.missingLyrics }
-        guard let correction = timeline.correctionToAlignLine(
-            at: index,
-            with: playbackPosition
-        ) else {
+        guard
+            let correction = timeline.correctionToAlignLine(
+                at: index,
+                with: playbackPosition
+            )
+        else {
             throw LyricsSynchronizationEngineError.lineOutOfBounds
         }
         try await setSyncOffset(correction)

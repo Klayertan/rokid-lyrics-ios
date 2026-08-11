@@ -114,4 +114,3 @@ public actor DiskLyricsCache: LyricsCache {
         return String(hash, radix: 16)
     }
 }
-

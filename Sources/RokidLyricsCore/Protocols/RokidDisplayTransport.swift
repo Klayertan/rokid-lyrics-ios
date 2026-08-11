@@ -86,4 +86,3 @@ public actor MockRokidDisplayTransport: RokidDisplayTransport {
         connectionHistory.append(state)
     }
 }
-

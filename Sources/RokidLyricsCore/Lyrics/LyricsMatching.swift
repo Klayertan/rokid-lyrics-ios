@@ -71,7 +71,8 @@ public struct LyricsMetadataNormalizer: Sendable {
             }
         }
 
-        return punctuationNormalized
+        return
+            punctuationNormalized
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
             .joined(separator: " ")
@@ -149,7 +150,7 @@ public struct LyricsMetadataNormalizer: Sendable {
         let markers = [
             "acoustic", "demo", "edit", "instrumental", "karaoke", "live",
             "mix", "mono", "radio", "remaster", "remastered", "slowed",
-            "sped up", "stereo", "version"
+            "sped up", "stereo", "version",
         ]
         return markers.contains { content.contains($0) }
     }

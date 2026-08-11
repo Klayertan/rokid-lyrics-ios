@@ -51,13 +51,15 @@ final class DomainModelTests: XCTestCase {
     }
 
     func testDisplayPreferencesHaveSafeDefaultsAndClamping() {
-        XCTAssertEqual(GlassesDisplayPreferences(), GlassesDisplayPreferences(
-            fontScale: 1,
-            visibleLineCount: 3,
-            verticalPosition: 0.5,
-            showPreviousLine: true,
-            showNextLine: true
-        ))
+        XCTAssertEqual(
+            GlassesDisplayPreferences(),
+            GlassesDisplayPreferences(
+                fontScale: 1,
+                visibleLineCount: 3,
+                verticalPosition: 0.5,
+                showPreviousLine: true,
+                showNextLine: true
+            ))
 
         let clamped = GlassesDisplayPreferences(
             fontScale: 50,

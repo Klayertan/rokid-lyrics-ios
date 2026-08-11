@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 import Testing
 @testable import RokidLyricsCore
@@ -23,7 +23,8 @@ struct LRCLibLyricsProviderTests {
     @Test("decodes a documented search response and identifies the client")
     func successfulResponse() async throws {
         let body = Data(
-            #"[{"id":42,"trackName":"Test Song","artistName":"Test Artist","albumName":"Test Album","duration":123.0,"instrumental":false,"plainLyrics":"First test line","syncedLyrics":"[00:01.00]First test line"}]"#.utf8
+            #"[{"id":42,"trackName":"Test Song","artistName":"Test Artist","albumName":"Test Album","duration":123.0,"instrumental":false,"plainLyrics":"First test line","syncedLyrics":"[00:01.00]First test line"}]"#
+                .utf8
         )
         let client = StubHTTPClient { request in
             #expect(request.url?.path == "/api/search")
@@ -111,15 +112,14 @@ private actor RequestCounter {
 
 private func response(status: Int, data: Data, request: URLRequest) throws -> HTTPResponse {
     guard let url = request.url,
-          let response = HTTPURLResponse(
-              url: url,
-              statusCode: status,
-              httpVersion: "HTTP/1.1",
-              headerFields: ["Content-Type": "application/json"]
-          )
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: status,
+            httpVersion: "HTTP/1.1",
+            headerFields: ["Content-Type": "application/json"]
+        )
     else {
         throw TestFailure.responseConstruction
     }
     return HTTPResponse(data: data, response: response)
 }
-

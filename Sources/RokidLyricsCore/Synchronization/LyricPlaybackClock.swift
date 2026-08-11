@@ -71,4 +71,3 @@ public struct LyricPlaybackClock: Equatable, Sendable {
         state = .stopped
     }
 }
-

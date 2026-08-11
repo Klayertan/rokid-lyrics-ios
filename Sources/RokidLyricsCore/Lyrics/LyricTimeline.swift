@@ -46,7 +46,8 @@ public struct LyricTimeline: Sendable {
         at playbackPosition: TimeInterval,
         syncOffsetSeconds: TimeInterval = 0
     ) -> LyricTimelinePosition {
-        let adjustedPosition = playbackPosition
+        let adjustedPosition =
+            playbackPosition
             + syncOffsetSeconds
             - document.embeddedOffsetSeconds
         let insertionIndex = upperBound(for: adjustedPosition)
@@ -105,4 +106,3 @@ public struct LyricTimeline: Sendable {
         return min(max(playbackPosition / duration, 0), 1)
     }
 }
-

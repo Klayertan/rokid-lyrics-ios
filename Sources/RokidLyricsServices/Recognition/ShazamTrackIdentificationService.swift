@@ -68,9 +68,11 @@ public struct ShazamTrackIdentificationService: TrackIdentificationService, Send
     }
 
     private static func makeIdentity(from match: SHMatch) throws -> TrackIdentity {
-        guard let item = match.mediaItems.first(where: {
-            clean($0.title) != nil && clean($0.artist) != nil
-        }), let title = clean(item.title), let artist = clean(item.artist) else {
+        guard
+            let item = match.mediaItems.first(where: {
+                clean($0.title) != nil && clean($0.artist) != nil
+            }), let title = clean(item.title), let artist = clean(item.artist)
+        else {
             throw ShazamIdentificationError.noUsableMediaItem
         }
 
@@ -124,10 +126,12 @@ public struct ShazamTrackIdentificationService: TrackIdentificationService, Send
         }
 
         let frameCount = frame.samples.count / frame.channelCount
-        guard let buffer = AVAudioPCMBuffer(
-            pcmFormat: format,
-            frameCapacity: AVAudioFrameCount(frameCount)
-        ), let channelData = buffer.floatChannelData else {
+        guard
+            let buffer = AVAudioPCMBuffer(
+                pcmFormat: format,
+                frameCapacity: AVAudioFrameCount(frameCount)
+            ), let channelData = buffer.floatChannelData
+        else {
             throw ShazamIdentificationError.invalidAudioFrame
         }
 

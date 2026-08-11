@@ -99,4 +99,3 @@ public struct LyricDocument: Codable, Equatable, Sendable {
         self.embeddedOffsetSeconds = embeddedOffsetSeconds
     }
 }
-
