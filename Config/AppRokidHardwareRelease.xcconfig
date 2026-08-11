@@ -1,0 +1,5 @@
+#include "RokidHardware.xcconfig"
+
+// CocoaPods cannot replace a target's custom base configuration. This optional
+// include makes the locally installed SDK visible to the hardware app target.
+#include? "../Pods/Target Support Files/Pods-RokidLyrics/Pods-RokidLyrics.rokid-hardware-release.xcconfig"

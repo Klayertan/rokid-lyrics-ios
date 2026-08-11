@@ -4,6 +4,11 @@ import UniformTypeIdentifiers
 
 @MainActor
 final class ShareViewController: UIViewController, UITextFieldDelegate {
+    private lazy var sharedInbox = SharedTrackInbox(
+        appGroupIdentifier: SharedTrackAppGroupResolver.resolve(
+            infoDictionary: Bundle.main.infoDictionary
+        )
+    )
     private let titleField = UITextField()
     private let artistField = UITextField()
     private let sourceLabel = UILabel()
@@ -170,7 +175,7 @@ final class ShareViewController: UIViewController, UITextFieldDelegate {
         saveButton.isEnabled = false
         Task {
             do {
-                try await SharedTrackInbox().save(draft)
+                try await sharedInbox.save(draft)
                 extensionContext?.completeRequest(returningItems: nil)
             } catch {
                 statusLabel.textColor = .systemRed

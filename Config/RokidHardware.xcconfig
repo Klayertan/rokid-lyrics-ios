@@ -1,0 +1,8 @@
+#include "Base.xcconfig"
+
+// This configuration is device-only. The real framework is installed locally
+// with CocoaPods and is never required by Mock or CI configurations.
+ROKID_SDK_AVAILABLE = YES
+ROKID_LYRICS_SDK_COMPILATION_CONDITION = ROKID_SDK_AVAILABLE
+ROKID_LYRICS_BUILD_MODE = rokid-hardware
+ROKID_LYRICS_DEFAULT_MOCK_MODE = NO

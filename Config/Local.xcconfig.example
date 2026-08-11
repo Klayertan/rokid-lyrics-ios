@@ -1,0 +1,12 @@
+// Copy this file to Config/Local.xcconfig and replace every placeholder.
+// Config/Local.xcconfig is gitignored and must never be committed.
+
+ROKID_LYRICS_DEVELOPMENT_TEAM = YOUR_TEAM_ID
+ROKID_LYRICS_BUNDLE_ID = com.yourcompany.rokidlyrics
+ROKID_LYRICS_SHARE_BUNDLE_ID = $(ROKID_LYRICS_BUNDLE_ID).ShareExtension
+ROKID_LYRICS_APP_GROUP = group.$(ROKID_LYRICS_BUNDLE_ID).shared
+
+// Dedicated schemes override these defaults. Keep them at Mock-safe values
+// unless you intentionally create another local build configuration.
+ROKID_LYRICS_BUILD_MODE = mock
+ROKID_LYRICS_DEFAULT_MOCK_MODE = YES

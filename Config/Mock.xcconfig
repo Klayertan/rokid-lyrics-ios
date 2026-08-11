@@ -1,0 +1,8 @@
+#include "Base.xcconfig"
+
+// The public/default app and CI must never inherit a developer's proprietary
+// SDK condition merely because Config/Local.xcconfig exists.
+ROKID_SDK_AVAILABLE = NO
+ROKID_LYRICS_SDK_COMPILATION_CONDITION =
+ROKID_LYRICS_BUILD_MODE = mock
+ROKID_LYRICS_DEFAULT_MOCK_MODE = YES

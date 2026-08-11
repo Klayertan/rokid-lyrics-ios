@@ -1,6 +1,12 @@
 platform :ios, '17.0'
 
-project 'RokidLyrics.xcodeproj'
+project 'RokidLyrics.xcodeproj',
+  'Debug' => :debug,
+  'Release' => :release,
+  'Mock-Debug' => :debug,
+  'Mock-Release' => :release,
+  'Rokid-Hardware-Debug' => :debug,
+  'Rokid-Hardware-Release' => :release
 
 target 'RokidLyrics' do
   use_frameworks!

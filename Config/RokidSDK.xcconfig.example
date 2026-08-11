@@ -1,6 +1,7 @@
-// Copy this file to Config/Local.xcconfig only after installing the official
-// RGCxrClient 1.0.4 pod into the app target. Do not commit credentials,
-// authentication callbacks, SDK logs, or proprietary binaries.
+// Legacy/advanced hardware override snippet. New setups should copy
+// Local.xcconfig.example to Local.xcconfig and use the `Rokid Lyrics Hardware`
+// scheme, which applies these values without affecting Mock or CI builds.
 ROKID_SDK_AVAILABLE = YES
-SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) ROKID_SDK_AVAILABLE
-
+ROKID_LYRICS_SDK_COMPILATION_CONDITION = ROKID_SDK_AVAILABLE
+ROKID_LYRICS_BUILD_MODE = rokid-hardware
+ROKID_LYRICS_DEFAULT_MOCK_MODE = NO
