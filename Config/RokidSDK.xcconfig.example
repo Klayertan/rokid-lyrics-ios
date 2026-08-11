@@ -1,5 +1,6 @@
-// Copy only after obtaining an official, distributable Rokid iOS SDK package.
-// Do not commit credentials, serial-number authorization, or proprietary binaries.
-ROKID_SDK_AVAILABLE = NO
-// ROKID_SDK_SEARCH_PATH = /absolute/path/to/verified/sdk
+// Copy this file to Config/Local.xcconfig only after installing the official
+// RGCxrClient 1.0.4 pod into the app target. Do not commit credentials,
+// authentication callbacks, SDK logs, or proprietary binaries.
+ROKID_SDK_AVAILABLE = YES
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) ROKID_SDK_AVAILABLE
 

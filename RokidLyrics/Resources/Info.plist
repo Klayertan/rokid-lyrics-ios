@@ -16,10 +16,27 @@
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
     <string>$(MARKETING_VERSION)</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>$(PRODUCT_BUNDLE_IDENTIFIER).cxrl</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>cxrl</string>
+            </array>
+        </dict>
+    </array>
     <key>CFBundleVersion</key>
     <string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>rokidai</string>
+    </array>
     <key>LSRequiresIPhoneOS</key>
     <true/>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>Rokid Lyrics uses Bluetooth to connect to authenticated Rokid Glasses and update the lyric display.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Rokid Lyrics listens briefly through the iPhone microphone to identify music and never stores the captured audio.</string>
     <key>UIApplicationSceneManifest</key>
@@ -27,6 +44,10 @@
         <key>UIApplicationSupportsMultipleScenes</key>
         <false/>
     </dict>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>bluetooth-central</string>
+    </array>
     <key>UILaunchScreen</key>
     <dict/>
     <key>UISupportedInterfaceOrientations</key>
@@ -35,4 +56,3 @@
     </array>
 </dict>
 </plist>
-

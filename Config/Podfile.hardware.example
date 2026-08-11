@@ -1,0 +1,10 @@
+platform :ios, '17.0'
+
+project 'RokidLyrics.xcodeproj'
+
+target 'RokidLyrics' do
+  use_frameworks!
+  pod 'RGCxrClient', '1.0.4'
+end
+
+# Intentionally do not link RGCxrClient into RokidLyricsShareExtension.
