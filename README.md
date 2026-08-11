@@ -16,11 +16,11 @@ The phone app, share extension, synchronization engine, LRCLIB client, and mock 
 
 | Category | Current evidence |
 | --- | --- |
-| **Implemented** | Core models/protocols, LRC parser/timeline, matching, LRCLIB networking/cache, phone microphone capture, ShazamKit adapter, synchronization engine, SwiftUI app, Share extension, diagnostics, mock transport, SDK-neutral CustomView payload encoding, and conditional real-SDK coordinator/display/glasses-PCM source. |
-| **Compiled** | `RokidLyricsCore` and `RokidLyricsServices` compile through Swift Package Manager. The mock app and Share extension passed strict Swift 6 whole-module arm64 iOS 17 Simulator object compilation. The public generated Xcode project also passed an unsigned generic Simulator build in [GitHub Actions](https://github.com/Klayertan/rokid-lyrics-ios/actions/runs/31483973369). With `ROKID_SDK_AVAILABLE`, the full app source set passed strict arm64 iPhoneOS 17 typechecking and object emission against the actual RGCxrClient interface; this used a temporary empty `RGCoreKit` module and was not a link/app build. The current local host still cannot load CoreSimulator. |
-| **Unit tested** | 72 passed, 0 failed in the latest local `swift test --parallel` run. |
+| **Implemented** | Core models/protocols, LRC parser/timeline, matching, LRCLIB networking/cache, phone microphone capture, ShazamKit adapter, synchronization engine, SwiftUI app, Share extension, mock transport/simulator, SDK-neutral CustomView payload encoding, conditional real-SDK coordinator/display/glasses-PCM source, physical-device diagnostics, isolated hardware controls, and an opt-in live LRCLIB metadata test. |
+| **Compiled** | The packages compile normally, and the mock app and Share Extension passed strict Swift 6 arm64 iPhoneOS 17 source typechecking. The Share Extension completed an unsigned mock target build. A separate `Mock-Debug` target-mode build linked an unsigned arm64 iOS 17 `.app` containing the embedded extension; it excluded `Assets.xcassets` only to bypass the local `actool` failure. The recorded public [GitHub Actions run](https://github.com/Klayertan/rokid-lyrics-ios/actions/runs/31483973369) also built the generated mock app normally for a generic Simulator. On this Mac, current normal scheme builds remain blocked before completion by the missing iOS 26.5 platform/runtime. The local target-mode app bundle was not asset-complete, signed, installed, or launched. |
+| **Unit tested** | Latest local run: 80 passed, 0 failed (53 XCTest + 27 Swift Testing). The most recent recorded CI run remains the historical 72/72 run until the updated workflow runs. |
 | **Simulator tested** | Not launched or interactively tested. A generic Simulator build alone will not change this category. |
-| **Real Rokid SDK** | Official 1.0.4 metadata, 1.0.4.2 framework archive, headers, and sample were inspected externally. The conditional coordinator, display transport, glasses-PCM service, `AppModel` selection, and URL callback wiring passed the compiler check above, but no SDK-linked, signed, or launched app build was recorded. |
+| **Real Rokid SDK** | CocoaPods resolved and built `RGCxrClient` 1.0.4, `RGCoreKit` 0.0.2, and `CocoaLumberjack` 3.9.1. The target-mode validation linked the current conditional adapter and embedded all three genuine frameworks. A normal hardware workspace build still cannot start on this host because the iOS 26.5 platform is unavailable; the validation app was not asset-complete, signed, installed, launched, authorized, or connected to glasses. |
 | **Hardware tested** | Not performed. No discovery, connection, rendering, Unicode, microphone, stability, or battery stage is marked passed. |
 
 [`docs/STATUS.md`](docs/STATUS.md) is the canonical, evidence-based status record and may be newer than this summary.
@@ -36,6 +36,8 @@ The phone app, share extension, synchronization engine, LRCLIB client, and mock 
 - A standard iOS Share extension that accepts text and web URLs, requires title/artist confirmation when needed, and passes one draft through an App Group.
 - A mock Rokid transport that remains buildable and testable without a proprietary SDK or physical glasses.
 - Bounded LRCLIB caching, request cancellation, HTTP validation, timeouts, and conservative transient retries.
+- Explicit Mock and Rokid Hardware schemes, local-only signing/identifier configuration, physical-iPhone audio diagnostics, isolated synthetic hardware controls, and sanitized copyable test reports.
+- An opt-in uncached LRCLIB diagnostic request that reports metadata and synchronized/plain/instrumental availability without displaying or copying lyric bodies.
 - English, Japanese, Chinese, and Korean text throughout the SDK-neutral model and mock UI. Physical-glasses glyph support is not yet verified.
 
 Translation and transliteration controls are UI placeholders only; no service is implemented for either feature.
@@ -54,7 +56,7 @@ flowchart TD
     display["GlassesDisplayModel<br/>SDK-neutral visible state"]
     transport["RokidDisplayTransport"]
     mock["MockRokidDisplayTransport<br/>phone simulator + tests"]
-    adapter["Optional interface-checked CXR-L adapter<br/>external proprietary SDK"]
+    adapter["Optional CXR-L adapter<br/>genuine SDK linked; not run on hardware"]
     glasses["Rokid Glasses"]
 
     music -->|"sound reaches an input"| capture
@@ -115,6 +117,7 @@ Recognition and timing are estimates. If the user pauses, seeks, changes playbac
 - Swift 6.
 - [XcodeGen 2.46.0](https://github.com/yonaskolb/XcodeGen/releases/tag/2.46.0) or newer.
 - iOS 17 or newer for the app target.
+- The generated app and Share Extension targets are iPhone-only (`TARGETED_DEVICE_FAMILY=1`).
 - No Rokid framework, credentials, or glasses for package tests and mock-mode builds.
 
 ### Signed iPhone development
@@ -141,7 +144,7 @@ cd rokid-lyrics-ios
 swift test --parallel
 ```
 
-The latest local run completed **72 tests with 72 passing and 0 failing**. Tests use fictional lyric text, injected networking, and the mock transport; they do not contact LRCLIB, invoke live Shazam matching, or require glasses.
+The latest local run completed **80 tests with 80 passing and 0 failing**: 53 XCTest cases and 27 Swift Testing cases. Tests use fictional lyric text, injected networking, and the mock transport; they do not contact LRCLIB, invoke live Shazam matching, or require glasses. The latest recorded hosted CI run predates the newest diagnostics/configuration tests and remains 72/72 until a new run is recorded.
 
 Generate the Xcode project and build the unsigned public/mock configuration:
 
@@ -151,8 +154,8 @@ xcodegen generate
 
 xcodebuild \
   -project RokidLyrics.xcodeproj \
-  -scheme RokidLyrics \
-  -configuration Debug \
+  -scheme 'Rokid Lyrics Mock' \
+  -configuration Mock-Debug \
   -destination 'generic/platform=iOS Simulator' \
   CODE_SIGNING_ALLOWED=NO \
   ROKID_SDK_AVAILABLE=NO \
@@ -161,14 +164,14 @@ xcodebuild \
 
 [`RokidLyrics.xcodeproj`](RokidLyrics.xcodeproj) is generated output. Run `xcodegen generate` after changing [`project.yml`](project.yml), target files, entitlements, or configuration; do not hand-edit the generated project.
 
-CI runs formatting checks, `swift test --parallel`, and the same generic iOS Simulator build on a public GitHub-hosted macOS runner without downloading or linking the proprietary Rokid SDK. The first recorded [main-branch run](https://github.com/Klayertan/rokid-lyrics-ios/actions/runs/31483973369) passed all steps.
+CI runs formatting checks, `swift test --parallel`, and the dedicated **Rokid Lyrics Mock** generic iOS Simulator build on a public GitHub-hosted macOS runner without downloading or linking the proprietary Rokid SDK. The first recorded [main-branch run](https://github.com/Klayertan/rokid-lyrics-ios/actions/runs/31483973369) passed its then-current workflow and all 72 tests; a later local 80/80 result does not rewrite that historical evidence.
 
 ## Running
 
 ### Mock Mode
 
 1. Run `xcodegen generate` and open `RokidLyrics.xcodeproj`.
-2. Select the **RokidLyrics** scheme and an iPhone Simulator or signed iPhone.
+2. Select the **Rokid Lyrics Mock** scheme and an iPhone Simulator or signed iPhone. The legacy **RokidLyrics** scheme is also forced to mock-safe Debug/Release configurations.
 3. Build and run.
 4. In **Settings**, leave **Developer / Mock Mode** enabled.
 5. Open **Rokid**, press **Connect**, and use the glasses simulator to inspect display state without hardware.
@@ -180,27 +183,27 @@ The iOS Simulator is useful for UI and mock transport work. It is not evidence t
 
 Before a device run:
 
-1. Replace the placeholder bundle identifiers in [`project.yml`](project.yml) with identifiers owned by your Apple Developer team.
-2. Register the same App Group for the app and extension. If its identifier changes, update both entitlement files and `SharedTrackInbox.defaultAppGroupIdentifier`.
-3. Set your development team locally in Xcode or on the build command line. Do not commit a personal team ID or provisioning profile.
-4. Regenerate the project with `xcodegen generate`.
-5. Grant microphone access only when you intend to start recognition.
+1. Register unique main-app and Share Extension App IDs plus one App Group owned by your Apple Developer team.
+2. Copy [`Config/Local.xcconfig.example`](Config/Local.xcconfig.example) to the gitignored `Config/Local.xcconfig`.
+3. Set `ROKID_LYRICS_DEVELOPMENT_TEAM`, `ROKID_LYRICS_BUNDLE_ID`, `ROKID_LYRICS_SHARE_BUNDLE_ID`, and `ROKID_LYRICS_APP_GROUP` there. Keep `ROKID_LYRICS_BUILD_MODE = mock` and `ROKID_LYRICS_DEFAULT_MOCK_MODE = YES` for the first install.
+4. Run `xcodegen generate`, select **Rokid Lyrics Mock**, and let Xcode manage signing for both targets.
+5. Enable the ShazamKit App Service for the main App ID and grant microphone access only when you intend to start recognition.
+
+The App Group build setting expands into both targets' entitlements and Info.plists. The app and extension resolve the injected value at runtime, so changing the local setting does not require editing Swift source. Follow the complete [physical iPhone setup](docs/PHYSICAL_IPHONE_SETUP.md) before recording device evidence.
 
 A generic signed build command has this shape:
 
 ```sh
 xcodebuild \
   -project RokidLyrics.xcodeproj \
-  -scheme RokidLyrics \
-  -configuration Debug \
+  -scheme 'Rokid Lyrics Mock' \
+  -configuration Mock-Debug \
   -destination 'generic/platform=iOS' \
-  DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-  ROKID_SDK_AVAILABLE=NO \
   -allowProvisioningUpdates \
   build
 ```
 
-Keep `APPLE_TEAM_ID` in your shell or private CI secret; never add it to the repository.
+Keep all personal signing and identifier values in the ignored `Config/Local.xcconfig`; never commit that file, provisioning profiles, or certificates.
 
 ## Apple and ShazamKit configuration
 
@@ -243,14 +246,17 @@ For an experimental local SDK-linked build, CocoaPods is the verified package ro
 
 ```sh
 brew install cocoapods
+cp Config/Local.xcconfig.example Config/Local.xcconfig
+# Edit the four developer-owned identity values in Config/Local.xcconfig.
 xcodegen generate
 cp Config/Podfile.hardware.example Podfile
 pod install
-cp Config/RokidSDK.xcconfig.example Config/Local.xcconfig
 open RokidLyrics.xcworkspace
 ```
 
-Open the generated workspace, not the project, for that configuration. The app target's Debug and Release configuration files optionally include CocoaPods' generated settings, while the Share Extension remains SDK-free. XcodeGen owns the project file, so run `pod install` again after every `xcodegen generate`. Keep `Podfile`, `Pods/`, `Config/Local.xcconfig`, SDK archives, and CocoaPods-generated integration changes out of commits unless the repository later adopts and reviews a distributable hardware-integration policy. The conditional adapter is wired into the app when the feature condition is active, but it still needs a successful SDK-linked build before Mock Mode can be replaced with compiled evidence.
+Open the generated workspace, not the project, and select **Rokid Lyrics Hardware**. Its `Rokid-Hardware-Debug` and `Rokid-Hardware-Release` configurations include the matching CocoaPods settings and compile the real adapter; the normal and named Mock configurations remain SDK-free. The Share Extension never links RGCxrClient. XcodeGen owns the project file, so run `pod install` again after every `xcodegen generate`. Keep `Podfile`, `Pods/`, `Config/Local.xcconfig`, SDK archives, and CocoaPods-generated integration changes out of commits unless the repository later adopts and reviews a distributable hardware-integration policy.
+
+The current milestone resolved `RGCxrClient` 1.0.4, `RGCoreKit` 0.0.2, and `CocoaLumberjack` 3.9.1 through CocoaPods. A target-mode validation compiled and linked the arm64 iOS 17 app executable and embedded all three genuine frameworks. It excluded `Assets.xcassets` only on the command line to bypass this Mac's broken `actool` runtime. The ordinary hardware workspace/scheme build still cannot start here because the iOS 26.5 platform is unavailable. The validation bundle was therefore not a normal asset-complete build and was not signed, installed, launched, authorized, or hardware-tested. Exact commands, hashes, and artifact evidence are recorded in [Rokid SDK notes](docs/ROKID_SDK_NOTES.md).
 
 The authoritative installation/blocker record is [Rokid SDK notes](docs/ROKID_SDK_NOTES.md). The manual evidence stages are in [Hardware test plan](docs/HARDWARE_TEST_PLAN.md).
 
@@ -262,7 +268,7 @@ Hardware Mode is an engineering/test configuration, not a supported end-user cla
 2. Read and accept Rokid's current terms yourself.
 3. Obtain the exact official SDK and sample from the links above; keep them in an ignored local/vendor location.
 4. Follow the CocoaPods/workspace sequence above and configure any required authorization locally. Never commit SDK archives, generated Pods, credentials, certificates, authorization files, or provisioning profiles.
-5. Enable the optional adapter only for a physical `iphoneos` build. Continue using `ROKID_SDK_AVAILABLE=NO` for Simulator and public CI.
+5. Select **Rokid Lyrics Hardware** only for a physical `iphoneos` build. Continue using **Rokid Lyrics Mock** for Simulator and public CI.
 6. Execute [Hardware test plan](docs/HARDWARE_TEST_PLAN.md) from discovery through the 30-minute stability stage, recording device, firmware, app, SDK, and result evidence.
 
 After the workspace and private signing configuration exist, a device build has this command shape:
@@ -270,17 +276,16 @@ After the workspace and private signing configuration exist, a device build has 
 ```sh
 xcodebuild \
   -workspace RokidLyrics.xcworkspace \
-  -scheme RokidLyrics \
-  -configuration Debug \
+  -scheme 'Rokid Lyrics Hardware' \
+  -configuration Rokid-Hardware-Debug \
   -destination 'generic/platform=iOS' \
-  DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
   -allowProvisioningUpdates \
   build
 ```
 
 Treat a successful build only as **compiled** evidence. It does not establish SDK authorization, a connection, display output, microphone delivery, or hardware stability.
 
-No hardware stage has been reported as passed. A conditional `RokidMicrophoneAudioCaptureService` maps the inspected official audio callback into the app's PCM model and is selected with the real transport, but no linked build or device stream has verified that audio is actually available.
+No hardware stage has been reported as passed. A conditional `RokidMicrophoneAudioCaptureService` maps the inspected official audio callback into the app's PCM model and is selected with the real transport. The genuine SDK-linked validation proves that code links; only a physical run can prove authorization or that a usable device stream arrives.
 
 ## Using with YouTube Music
 
@@ -294,9 +299,11 @@ No hardware stage has been reported as passed. A conditional `RokidMicrophoneAud
 
 The default phone capture service requests `.playAndRecord`, `.mixWithOthers`, and `.defaultToSpeaker`. Those options ask iOS to permit input while mixing other audio, but they do not guarantee that every YouTube Music version, output route, Bluetooth device, or phone model will continue unchanged. Playback may pause, duck, reroute, feed back, or become inaudible to the microphone. This interaction has not yet been validated on a physical device; a second audible speaker or the Share/manual workflow may be more reliable. The conditional glasses-microphone service does not configure `AVAudioSession`, but its simultaneous behavior with YouTube Music is also untested.
 
+The **Physical iPhone Tests** diagnostic screen records public audio-session state, route types, interruptions, recognition timing, and human-observed coexistence outcomes. Its optional **LIVE LRCLIB TEST** performs an explicit uncached request and reports candidate metadata/availability without displaying lyric bodies. Neither diagnostic runs automatically. Use the controlled [YouTube Music device procedure](docs/YOUTUBE_MUSIC_DEVICE_TEST.md) and copy [`docs/DEVICE_TEST_SESSION.md`](docs/DEVICE_TEST_SESSION.md) for each real session.
+
 ### Share or manual fallback
 
-1. In YouTube Music, use the standard Share sheet and choose **Rokid Lyrics** if the extension is available.
+1. In YouTube Music, use the standard Share sheet and choose **Share to Rokid Lyrics** if the extension is available.
 2. Verify or enter both title and artist. A URL alone is not treated as trustworthy metadata and is never opened or scraped.
 3. Return to Rokid Lyrics, search LRCLIB, and select a synchronized candidate.
 4. Manually align playback because a share item provides no reliable elapsed position.
@@ -352,11 +359,15 @@ Open **Find Lyrics**, enter the canonical title and primary artist, and review t
 
 ### The Share extension is missing or the draft does not arrive
 
-Confirm the extension is enabled in the Share sheet, both targets are signed by the same team, and both entitlements use the same registered App Group. If the App Group identifier was changed, also update `SharedTrackInbox.defaultAppGroupIdentifier` and regenerate the project.
+Confirm the extension is enabled in the Share sheet, both targets are signed by the same team, and `ROKID_LYRICS_APP_GROUP` in the ignored `Config/Local.xcconfig` exactly matches the registered App Group assigned to both App IDs. Regenerate the project after changing it. The runtime inbox resolves the expanded Info.plist value; no Swift constant needs editing.
 
 ### A Rokid framework fails on Simulator or CI
 
-Use `ROKID_SDK_AVAILABLE=NO`. The inspected framework is an arm64 device binary without a Simulator slice and is intentionally absent from public CI. Hardware work belongs in a separately configured `iphoneos` build.
+Use the **Rokid Lyrics Mock** scheme. The inspected framework is an arm64 device binary without a Simulator slice and is intentionally absent from public CI. Hardware work belongs in the **Rokid Lyrics Hardware** workspace scheme on `iphoneos`.
+
+### Xcode reports that iOS 26.5 is not installed or `actool` finds no runtime
+
+Install the missing iOS platform/runtime using Xcode's supported component manager and complete first-launch setup. On the current local host, `xcodebuild -showsdks` can see the SDK files while the generic iOS destination remains ineligible and `actool` reports no runtime. Do not treat the target-mode asset exclusion used for SDK link validation as a normal app-build workaround.
 
 ### Lyrics are early, late, or drift after a seek
 
@@ -370,7 +381,7 @@ The domain model and JSON path preserve Unicode. Actual Japanese, Chinese, and K
 
 Listening starts only after the user presses **Start Lyrics**. The phone path requests Apple's microphone permission; the conditional glasses path requests the official SDK's microphone authorization scope. Raw PCM stays in a bounded in-memory stream and is not intentionally saved. The derived Shazam signature is passed to ShazamKit; LRCLIB receives title/artist/optional album query metadata over HTTPS; artwork may be loaded from the URL supplied by ShazamKit.
 
-Lyrics candidates can be stored in the bounded Caches directory, settings and per-track offsets in `UserDefaults`, and one confirmed share draft in App Group `UserDefaults`. Copyable diagnostics can include song metadata and short visible lyric fragments, so users should review them before sharing. No analytics, advertising SDK, tracker, private YouTube credential, or raw-audio recorder is included. See the full [Privacy](docs/PRIVACY.md) inventory.
+Lyrics candidates can be stored in the bounded Caches directory, settings and per-track offsets in `UserDefaults`, and one confirmed share draft in App Group `UserDefaults`. Copyable diagnostics can include song metadata, candidate metadata, timing, port types, and sanitized errors, but they omit raw audio, route/device names, callback URLs, tokens, raw SDK logs, lyric bodies, and local coexistence-note text. Users should still review reports before sharing. No analytics, advertising SDK, tracker, private YouTube credential, or raw-audio recorder is included. See the full [Privacy](docs/PRIVACY.md) inventory.
 
 ## Copyright
 
@@ -380,7 +391,7 @@ Rokid SDK binaries, samples, trademarks, and documentation remain subject to Rok
 
 ## Development roadmap
 
-- Complete and record a full workspace link/build against the real RGCxrClient 1.0.4 / framework 1.0.4.2 and RGCoreKit dependency without making the public build depend on them.
+- Repair/install the missing local iOS platform, produce a normal asset-complete Hardware workspace build, then sign, install, and launch it on a physical iPhone without making the public build depend on proprietary frameworks.
 - Validate discovery, authorization, CustomView rendering, update limits, reconnect behavior, and Unicode on physical Rokid hardware.
 - Characterize iPhone microphone/YouTube Music coexistence across speaker, wired, Bluetooth, interruption, lock, and foreground/background routes.
 - Add signed-device Shazam integration tests, Share extension/App Group UI tests, SwiftUI accessibility tests, and visual regression coverage.
@@ -400,6 +411,9 @@ Rokid SDK binaries, samples, trademarks, and documentation remain subject to Rok
 - [Privacy](docs/PRIVACY.md)
 - [Testing](docs/TESTING.md)
 - [Hardware test plan](docs/HARDWARE_TEST_PLAN.md)
+- [Physical iPhone setup](docs/PHYSICAL_IPHONE_SETUP.md)
+- [YouTube Music device test](docs/YOUTUBE_MUSIC_DEVICE_TEST.md)
+- [Blank device-test session record](docs/DEVICE_TEST_SESSION.md)
 
 ## License
 

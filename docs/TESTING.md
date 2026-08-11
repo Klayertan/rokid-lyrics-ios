@@ -4,7 +4,7 @@ The default automated suite is deterministic, uses fictional lyric text, perform
 
 ## Verified automated result
 
-On 2026-08-11, this command completed successfully in the working repository:
+On 2026-08-12, this command completed successfully in the working repository:
 
 ```sh
 swift test --parallel
@@ -15,8 +15,8 @@ Result:
 | Runner | Tests | Passed | Failed |
 | --- | ---: | ---: | ---: |
 | XCTest (`RokidLyricsCoreTests`) | 53 | 53 | 0 |
-| Swift Testing (`RokidLyricsServicesTests`) | 19 | 19 | 0 |
-| **Total** | **72** | **72** | **0** |
+| Swift Testing (`RokidLyricsServicesTests`) | 27 | 27 | 0 |
+| **Total** | **80** | **80** | **0** |
 
 Local validation environment:
 
@@ -26,18 +26,13 @@ Local validation environment:
 - XcodeGen 2.46.0;
 - Swift package deployment platforms: iOS 17 and macOS 14.
 
-This is package compilation and unit-test evidence. Separate compiler-only checks described below cover iOS source/object emission. None of these results is evidence of a linked app bundle, launched iOS Simulator app, physical iPhone behavior, live Shazam/LRCLIB behavior, or Rokid hardware behavior. Those categories are tracked separately in [`STATUS.md`](STATUS.md).
+This is package compilation and unit-test evidence. Separate checks cover iOS source compilation and linking. None of these results is evidence of a launched iOS Simulator app, signed physical-iPhone install, live Shazam/LRCLIB result, or Rokid hardware behavior. Those categories are tracked separately in [`STATUS.md`](STATUS.md).
 
-An iOS Simulator build was attempted after generating the project, but `xcodebuild` exited 70 before the Xcode target build because this machine's installation could not load `IDESimulatorFoundation`; the required `/Library/Developer/PrivateFrameworks/CoreSimulator.framework` was absent. Xcode advised updating system content or running first-launch setup. That command is an environment/toolchain failure, not a passing Xcode build; independent compiler-only evidence follows.
+The complete public/mock app and Share Extension source sets also passed strict Swift 6 arm64 iPhoneOS 17 typechecking. The Share Extension then completed an unsigned `Mock-Debug` target build for arm64 iPhoneOS. A separate app-target command with `Assets.xcassets` excluded only on the command line linked an unsigned `Mock-Debug` arm64 iOS 17 `.app` and embedded the Share Extension; `/tmp/rokid-mock-app-final-xcodebuild.log` ends `BUILD SUCCEEDED`. This proves the current mock app/extension source composition and link, but the bundle was not asset-complete, signed, installed, or launched.
 
-Separately, after conditional AppModel and URL-callback wiring was included, the complete main-app Swift source set passed strict Swift 6 arm64 iPhoneOS 17 compilation with whole-module optimization and emitted a 2.1 MB object against the inspected real `RGCxrClient` interface. The check used a temporary empty `RGCoreKit` module solely to satisfy the client interface import. It did not perform the final link, create/sign/install an app bundle, run SDK code, or involve hardware. Report this as **compiled-to-object against actual CXR-L APIs**, never as a linked app or completed/hardware-tested integration. Exact command, artifact, and interface evidence belongs in [`ROKID_SDK_NOTES.md`](ROKID_SDK_NOTES.md).
+A normal generated main-app scheme build still cannot complete on this machine: Xcode reports the iOS 26.5 platform/runtime unavailable, and `actool` reports that no runtime is available. This is an environment/toolchain failure, not a passing normal main-app build or Simulator result. Both generated iOS targets force `TARGETED_DEVICE_FAMILY=1`.
 
-Independent strict Swift 6 whole-module compilation also emitted:
-
-- a 1,921,672-byte arm64 iOS 17 Simulator object for the public/mock main app;
-- a 111,472-byte arm64 iOS 17 Simulator object for the Share Extension.
-
-These simulator-target results prove Swift source/object compilation only. Because the Xcode/CoreSimulator environment is incomplete, neither target was linked into an Xcode-built app/extension bundle or launched. They must be labeled **simulator-target compiled**, not **simulator tested**.
+Separately, CocoaPods resolved and built the genuine graph `RGCxrClient` 1.0.4 → `RGCoreKit` 0.0.2 → `CocoaLumberjack/Swift` 3.9.1. A target-mode arm64 iOS 17 build compiled the current app sources, linked the executable against all three real frameworks, and embedded them. That validation excluded `Assets.xcassets` on the command line solely to bypass the same broken local `actool` runtime. The ordinary `Rokid Lyrics Hardware` workspace build still could not start because the generic iOS destination was ineligible. The target-mode bundle was not asset-complete, signed, installed, launched, authorized, or connected to hardware. Report it as **linked against and embedded the genuine SDK dependency chain**, never as a normal workspace/device build or completed integration. Exact commands and artifact evidence are in [`ROKID_SDK_NOTES.md`](ROKID_SDK_NOTES.md).
 
 ## Quick commands
 
@@ -53,8 +48,8 @@ Generate the Xcode project and build the public/mock configuration for a generic
 xcodegen generate
 xcodebuild \
   -project RokidLyrics.xcodeproj \
-  -scheme RokidLyrics \
-  -configuration Debug \
+  -scheme 'Rokid Lyrics Mock' \
+  -configuration Mock-Debug \
   -destination 'generic/platform=iOS Simulator' \
   CODE_SIGNING_ALLOWED=NO \
   build
@@ -62,7 +57,7 @@ xcodebuild \
 
 The generated `.xcodeproj` is an output of `project.yml`; regenerate it after project configuration changes. Do not hand-edit generated project settings.
 
-If `xcodebuild` reports that `IDESimulatorFoundation` cannot load because `CoreSimulator.framework` is missing, repair/complete the Xcode installation using Apple's supported installation/first-launch process before retrying. Do not mark the app compiled or simulator-tested from that failed attempt.
+If `xcodebuild` reports that the requested iOS platform is not installed, that no destination is eligible, or that `actool` has no runtime, repair/complete the Xcode platform installation using Apple's supported component/first-launch process before retrying. Do not mark the app built or Simulator-tested from that failed attempt, and do not use the asset-exclusion link probe as a normal-build substitute.
 
 To see individual package tests:
 
@@ -82,15 +77,14 @@ For a signed device build, configure a valid Apple development team, App Group c
 ```sh
 xcodebuild \
   -project RokidLyrics.xcodeproj \
-  -scheme RokidLyrics \
-  -configuration Debug \
+  -scheme 'Rokid Lyrics Mock' \
+  -configuration Mock-Debug \
   -destination 'generic/platform=iOS' \
-  DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
   -allowProvisioningUpdates \
   build
 ```
 
-`APPLE_TEAM_ID` is a local shell variable and must never be committed. A successful generic build does not prove microphone, share-extension, routing, Bluetooth, SDK authorization, or display behavior; use a physical device and record evidence under the hardware plan.
+First copy `Config/Local.xcconfig.example` to ignored `Config/Local.xcconfig` and supply the developer team, app/extension bundle IDs, and App Group there. A successful generic build does not prove microphone, Share Extension, routing, Bluetooth, SDK authorization, or display behavior; use a physical device and record evidence under the hardware plan.
 
 ## Continuous integration
 
@@ -103,9 +97,9 @@ xcodebuild \
 5. enforces the repository's Swift formatting rules;
 6. runs `swift test --parallel`;
 7. regenerates the Xcode project;
-8. builds the generic iOS Simulator configuration with signing disabled and `ROKID_SDK_AVAILABLE=NO`.
+8. builds the **Rokid Lyrics Mock** / `Mock-Debug` generic iOS Simulator configuration with signing disabled and `ROKID_SDK_AVAILABLE=NO`.
 
-The workflow intentionally has no proprietary framework or Rokid credential. [GitHub Actions run 31483973369](https://github.com/Klayertan/rokid-lyrics-ios/actions/runs/31483973369) completed successfully on `main`: formatting, all 72 package tests, project generation, and the unsigned generic iOS Simulator build passed. The job did not launch the app, so Simulator-tested status remains “No.”
+The workflow intentionally has no proprietary framework or Rokid credential. [GitHub Actions run 31483973369](https://github.com/Klayertan/rokid-lyrics-ios/actions/runs/31483973369) completed successfully on `main`: formatting, all 72 package tests that existed in that revision, project generation, and the unsigned generic iOS Simulator build passed. The current local suite is 80/80, but those eight additional tests must not be attributed to the historical run. The job did not launch the app, so Simulator-tested status remains “No.”
 
 ## Coverage by subsystem
 
@@ -242,6 +236,28 @@ Tests verify:
 
 These tests construct domain input directly. They do not launch the extension or establish the item types emitted by a current YouTube Music iOS version.
 
+### Shared App Group resolution
+
+Pure resolver tests verify:
+
+- a configured App Group is read from the target Info dictionary;
+- surrounding whitespace is removed;
+- a supplied fallback is used when the key is absent;
+- unresolved Xcode build-setting syntax and non-`group.` identifiers are rejected.
+
+These tests do not prove that an App Group is registered, provisioned, or shared successfully on an iPhone. That requires a signed app/extension device test.
+
+### Diagnostic sanitization
+
+Tests verify that copyable diagnostic helpers:
+
+- redact common credential/token forms, callback query strings, user home-directory names, and email addresses;
+- remove credentials, queries, and fragments from public HTTP(S) URLs;
+- reject non-web URLs;
+- bound arbitrary error text.
+
+Sanitizer tests reduce accidental disclosure risk; they do not replace reviewing a diagnostic report before sharing it or auditing any future SDK/logging integration.
+
 ## Important gaps
 
 The automated suite does not yet cover:
@@ -249,7 +265,7 @@ The automated suite does not yet cover:
 - `AVAudioSession` activation, route changes, interruptions, or permission UI;
 - real microphone PCM and Shazam catalog matching;
 - the Shazam adapter's metadata mapping with an Apple-provided test seam;
-- live LRCLIB service behavior, real rate limiting, and timeout behavior;
+- the opt-in live LRCLIB diagnostic action, current service behavior, real rate limiting, and timeout behavior;
 - disk-cache expiry/pruning and user-defaults migration;
 - SwiftUI UI tests, accessibility automation, or visual snapshots;
 - share-extension launch and App Group transfer on an iOS device;
@@ -282,7 +298,7 @@ Before reporting a release candidate:
 3. Build the public/mock configuration without a proprietary framework.
 4. Build and launch the app and share extension in an iOS Simulator where supported.
 5. Build and launch a signed physical-device configuration.
-6. Run formatting/linting if configured; this repository must not claim a formatter run until one is actually configured and executed.
+6. Run `xcrun swift-format lint -s -r Sources Tests RokidLyrics RokidLyricsShareExtension`.
 7. Search for `TODO` and `FIXME`; document each intentional remainder.
 8. Inspect tracked files for credentials, signing assets, lyric dumps, SDK binaries, and user-state files.
 9. Review `git diff` and `git status`.

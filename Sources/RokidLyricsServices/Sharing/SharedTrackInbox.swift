@@ -1,12 +1,16 @@
 import Foundation
 
 public actor SharedTrackInbox {
-    public static let defaultAppGroupIdentifier = "group.com.rokidlyrics.shared"
+    public static let defaultAppGroupIdentifier = SharedTrackAppGroupResolver.defaultIdentifier
     private static let storageKey = "pendingSharedTrackDraft"
 
     private let defaults: UserDefaults?
 
-    public init(appGroupIdentifier: String = SharedTrackInbox.defaultAppGroupIdentifier) {
+    public init(
+        appGroupIdentifier: String = SharedTrackAppGroupResolver.resolve(
+            infoDictionary: Bundle.main.infoDictionary
+        )
+    ) {
         defaults = UserDefaults(suiteName: appGroupIdentifier)
     }
 

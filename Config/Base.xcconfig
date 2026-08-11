@@ -2,9 +2,25 @@ SWIFT_VERSION = 6.0
 IPHONEOS_DEPLOYMENT_TARGET = 17.0
 MARKETING_VERSION = 0.1.0
 CURRENT_PROJECT_VERSION = 1
+
+// Clone-buildable defaults. Developer-owned values belong in the optional,
+// gitignored Local.xcconfig included below.
+ROKID_LYRICS_DEVELOPMENT_TEAM =
+ROKID_LYRICS_BUNDLE_ID = com.rokidlyrics.app
+ROKID_LYRICS_SHARE_BUNDLE_ID = $(ROKID_LYRICS_BUNDLE_ID).ShareExtension
+ROKID_LYRICS_APP_GROUP = group.com.rokidlyrics.shared
+ROKID_LYRICS_BUILD_MODE = mock
+ROKID_LYRICS_DEFAULT_MOCK_MODE = YES
 ROKID_SDK_AVAILABLE = NO
+ROKID_LYRICS_SDK_COMPILATION_CONDITION =
+
 ENABLE_USER_SCRIPT_SANDBOXING = YES
 CLANG_ENABLE_MODULES = YES
 
-// Optional developer-local hardware settings. This file is gitignored.
+// Optional developer-local signing, identifiers, and hardware settings.
+// This file is gitignored; start from Local.xcconfig.example.
 #include? "Local.xcconfig"
+
+// Indirection lets the dedicated Mock configurations remove the proprietary
+// SDK condition even when Local.xcconfig enables hardware development.
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) $(ROKID_LYRICS_SDK_COMPILATION_CONDITION)

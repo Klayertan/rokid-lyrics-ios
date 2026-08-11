@@ -2,7 +2,7 @@
 
 Rokid Lyrics iOS is an iPhone companion app that turns audible music into a small, time-synchronized lyric state. YouTube Music is an audio source only: the app does not inspect its process, queue, player, or private APIs.
 
-The repository targets iOS 17 and Swift 6. The reusable domain and service modules are Swift packages, while the iPhone app and share extension are generated from `project.yml` with XcodeGen.
+The repository targets iOS 17 and Swift 6. The reusable domain and service modules are Swift packages, while the iPhone app and Share Extension are generated from `project.yml` with XcodeGen. Dedicated **Rokid Lyrics Mock** and **Rokid Lyrics Hardware** schemes keep the proprietary device-only dependency out of public builds; the legacy **RokidLyrics** scheme remains mock-safe.
 
 ## System context
 
@@ -19,7 +19,7 @@ flowchart TD
     model["GlassesDisplayModel<br/>SDK-neutral visible state"]
     transport["RokidDisplayTransport"]
     mock["MockRokidDisplayTransport<br/>development and tests"]
-    real["Verified CXR-L adapter<br/>optional proprietary dependency"]
+    real["Verified CXR-L adapter<br/>genuine dependency chain linked; not run"]
     glasses["Rokid Glasses"]
 
     source --> route --> capture --> identify --> provider --> sync --> model --> transport
@@ -54,8 +54,8 @@ Apple describes Share extensions as receiving initial text and attachments throu
 | Module | Responsibility | May depend on |
 | --- | --- | --- |
 | `RokidLyricsCore` | Domain models, protocols, LRC parsing, matching, timeline, clock, synchronization state machine, in-memory correction store, mock display transport | Foundation only |
-| `RokidLyricsServices` | AVFoundation microphone capture, ShazamKit identification, LRCLIB networking/cache, `UserDefaults` correction persistence, share parsing and inbox | `RokidLyricsCore`, Apple frameworks |
-| `RokidLyrics` | SwiftUI presentation, the injectable `AppModel` composition/orchestration layer, and conditional CXR-L app adapters | Core, Services, and the optional SDK only in SDK-enabled device builds |
+| `RokidLyricsServices` | AVFoundation microphone capture, ShazamKit identification, LRCLIB networking/cache, `UserDefaults` correction persistence, share parsing/inbox/App Group resolution, and diagnostic sanitization | `RokidLyricsCore`, Apple frameworks |
+| `RokidLyrics` | SwiftUI presentation, the injectable `AppModel` composition/orchestration layer, device-validation diagnostics, isolated hardware-test controls, and conditional CXR-L app adapters | Core, Services, and the optional SDK only in SDK-enabled device builds |
 | `RokidLyricsShareExtension` | Standard share-item intake and explicit metadata confirmation | Services |
 | `Tests` | Deterministic domain and service tests with synthetic lyrics and injected doubles | Core and Services |
 
@@ -72,7 +72,34 @@ The dependency rule is inward: views can depend on domain state, but the domain 
 | `SyncCorrectionStore` | In-memory and `UserDefaults` implementations | Reads and writes per-track manual offsets. |
 | `RokidDisplayTransport` | Mock transport; conditional `CXRLRokidDisplayTransport` when the verified SDK is available | Connects, disconnects, sends a complete `GlassesDisplayModel`, and clears output without leaking SDK types. Compilation is not hardware evidence. |
 
-`AppModel` is the composition root and accepts optional injected services for tests/alternate builds. The public configuration forces Mock Mode and uses the phone microphone. In an SDK-enabled device build, turning Mock Mode off constructs one shared `RokidCXRCoordinator`, a `CXRLRokidDisplayTransport`, and a `RokidMicrophoneAudioCaptureService`; the SwiftUI app forwards the registered callback URL to that coordinator. Switching modes is allowed only while synchronization is idle and disconnects/stops the previous adapters. This wiring has compiled to an arm64 iPhoneOS object against the real SDK interface, but it has not been linked, signed, launched, or hardware-tested.
+`AppModel` is the composition root and accepts optional injected services for tests/alternate builds. The Mock configurations force Mock Mode and use the phone microphone. In an SDK-enabled device build, turning Mock Mode off constructs one shared `RokidCXRCoordinator`, a `CXRLRokidDisplayTransport`, and a `RokidMicrophoneAudioCaptureService`; the SwiftUI app forwards the registered callback URL to that coordinator. Switching modes is allowed only while synchronization is idle and disconnects/stops the previous adapters.
+
+That wiring has now compiled and linked into an unsigned arm64 iOS 17 target-mode app against genuine CocoaPods-resolved `RGCxrClient` 1.0.4, `RGCoreKit` 0.0.2, and `CocoaLumberjack` 3.9.1, with all three frameworks embedded. The validation excluded `Assets.xcassets` only to bypass this host's missing `actool` runtime. The normal Hardware workspace build still cannot start because the iOS 26.5 platform is unavailable. Nothing has been signed, installed, launched, authorized, or hardware-tested.
+
+## Build and signing boundary
+
+`Config/Base.xcconfig` provides clone-buildable defaults and optionally includes ignored `Config/Local.xcconfig`. Developers copy `Config/Local.xcconfig.example` and keep the following values out of source control:
+
+- development team;
+- main-app and Share Extension bundle identifiers;
+- shared App Group identifier;
+- build-mode label and default Mock Mode value.
+
+The main and extension bundle IDs and development team expand into generated target settings. The App Group expands into both entitlements and both Info.plists. `SharedTrackAppGroupResolver` reads the target's expanded Info value, so `SharedTrackInbox` and the Share Extension use the same locally configured suite without a hard-coded runtime composition.
+
+`Mock-Debug`/`Mock-Release` remove the real-SDK compilation condition even if proprietary pods exist locally. `Rokid-Hardware-Debug`/`Rokid-Hardware-Release` define it and, for the main app only, include CocoaPods' matching target settings. The Share Extension never links RGCxrClient. Public CI selects the named Mock scheme and contains no Rokid framework or credential.
+
+Both generated targets force `TARGETED_DEVICE_FAMILY=1`. A `Mock-Debug` target-mode validation linked an unsigned arm64 iOS 17 app and embedded the Share Extension with the asset catalog excluded only to bypass this host's broken `actool`; the result was not an asset-complete, signed, installed, or launched app. The historical public CI run remains the normal generated generic-Simulator build evidence.
+
+## Device-validation boundary
+
+Physical validation is explicit and opt-in:
+
+- `PhysicalDeviceDiagnosticsView` observes only public audio-session properties/notifications and exposes a human-recorded YouTube Music coexistence result, Shazam timing/metadata, timeline state, and an uncached LRCLIB metadata/availability test. It never inspects PCM or displays fetched lyric bodies in that live-provider test.
+- `RokidHardwareTestView` separates connection, synthetic static/update/clear/Unicode display actions, and glasses-PCM metrics from the complete pipeline. End-to-end start is gated on a tester confirmation and an active connection.
+- `SafeDeviceDiagnosticReport` exports typed, bounded state. `DiagnosticSanitizer` redacts common credential shapes and strips sensitive URL components. The report uses route port types rather than route/device names, omits raw audio and lyric bodies, and records only an active-line character count for the last display payload.
+
+These tools help collect evidence; their existence does not count as a live-service, device, or hardware result. Procedures and blank records live in `docs/PHYSICAL_IPHONE_SETUP.md`, `docs/YOUTUBE_MUSIC_DEVICE_TEST.md`, and `docs/DEVICE_TEST_SESSION.md`.
 
 ## Recognition and lyrics flow
 
@@ -154,7 +181,7 @@ If transport connectivity is lost, the synchronization engine continues independ
 | Settings | Standard `UserDefaults` | Until reset/uninstall |
 | Per-track sync corrections | Standard `UserDefaults` | Until removed/reset/uninstall |
 | LRCLIB candidates and lyrics | App Caches directory | Up to 100 entries; 30-day age limit in the app composition |
-| Pending share draft | App Group `UserDefaults` | One draft; removed when the main app consumes it |
+| Pending share draft | App Group `UserDefaults` resolved from the target's expanded build setting | One draft; removed when the main app consumes it |
 | Raw microphone PCM | Memory stream only | Capture session only; never intentionally written to disk |
 | Current session/display state | Memory | Process/session lifetime |
 
@@ -167,6 +194,7 @@ Cache failures do not fail lyric lookup. Cache data is provider runtime content,
 - The app currently declares only the `bluetooth-central` `UIBackgroundModes` value for the optional device-connection path; it does not declare the `audio` value. That does not authorize or prove continuous background microphone capture, lyric advancement, networking, or SDK display updates. Apple documents the distinct background-mode values at [`UIBackgroundModes`](https://developer.apple.com/documentation/bundleresources/information-property-list/uibackgroundmodes).
 - The share extension can consume only the standard representations supplied by the host. A URL alone is never reverse-engineered or scraped for metadata.
 - The optional real Rokid path and its proprietary-package setup are isolated from the always-buildable mock path. Verified package facts and remaining SDK blockers belong in [`ROKID_SDK_NOTES.md`](ROKID_SDK_NOTES.md).
+- Physical-device observations must follow [`YOUTUBE_MUSIC_DEVICE_TEST.md`](YOUTUBE_MUSIC_DEVICE_TEST.md) and [`HARDWARE_TEST_PLAN.md`](HARDWARE_TEST_PLAN.md); compiler/link output and diagnostic UI labels never become device evidence on their own.
 
 ## Deliberately out of scope for the MVP
 
@@ -175,4 +203,4 @@ Cache failures do not fail lyric lookup. Cache data is provider runtime content,
 - A speculative audio-alignment ML model.
 - Translation or transliteration; settings are labeled as planned placeholders.
 - Redistributing a proprietary Rokid SDK binary.
-- Claiming hardware support before a real adapter compiles and a physical device passes the hardware plan.
+- Claiming working hardware support merely because the real adapter links; physical devices must pass the hardware plan first.

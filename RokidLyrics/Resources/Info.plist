@@ -19,6 +19,8 @@
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
             <key>CFBundleURLName</key>
             <string>$(PRODUCT_BUNDLE_IDENTIFIER).cxrl</string>
             <key>CFBundleURLSchemes</key>
@@ -39,6 +41,12 @@
     <string>Rokid Lyrics uses Bluetooth to connect to authenticated Rokid Glasses and update the lyric display.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Rokid Lyrics listens briefly through the iPhone microphone to identify music and never stores the captured audio.</string>
+    <key>RokidLyricsAppGroupIdentifier</key>
+    <string>$(ROKID_LYRICS_APP_GROUP)</string>
+    <key>RokidLyricsBuildMode</key>
+    <string>$(ROKID_LYRICS_BUILD_MODE)</string>
+    <key>RokidLyricsDefaultMockMode</key>
+    <string>$(ROKID_LYRICS_DEFAULT_MOCK_MODE)</string>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>

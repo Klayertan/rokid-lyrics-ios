@@ -1,6 +1,6 @@
 # Project status
 
-Last updated: 2026-08-11
+Last updated: 2026-08-12
 
 This file uses five independent evidence categories. A feature can be implemented without being compiled for every target, and it can compile without being run on a simulator or physical device.
 
@@ -14,19 +14,22 @@ This file uses five independent evidence categories. A feature can be implemente
 
 ## Evidence snapshot
 
-- `swift test --parallel`: **72 passed, 0 failed** on 2026-08-11 (53 XCTest + 19 Swift Testing).
+- `swift test --parallel`: **80 passed, 0 failed** on 2026-08-12 (53 XCTest + 27 Swift Testing).
 - That run compiled `RokidLyricsCore` and `RokidLyricsServices` for the macOS package test host.
-- A generated-project iOS Simulator build was attempted, but `xcodebuild` exited 70 before the Xcode target build because the local installation is missing the required system `CoreSimulator.framework` used by `IDESimulatorFoundation`.
-- The public/mock [GitHub Actions run 31483973369](https://github.com/Klayertan/rokid-lyrics-ios/actions/runs/31483973369) passed formatting, all 72 package tests, XcodeGen generation, and an unsigned generic iOS Simulator build with Xcode 16.4. It did not launch the app.
-- After the conditional CXR-L path was wired into `AppModel` and the SwiftUI URL callback, the complete main-app Swift source set passed strict Swift 6 arm64 iPhoneOS 17 compilation with whole-module optimization and emitted a 2.1 MB object against the inspected real `RGCxrClient` interface. This was **compile-to-object evidence only**, not a final link/app bundle: the check used a temporary empty `RGCoreKit` module solely to satisfy the client framework interface import.
-- Strict Swift 6 whole-module compilation also emitted a 1.9 MB arm64 iOS 17 Simulator object for the public/mock app and a 111 KB object for the Share Extension. Neither was linked into an Xcode-built bundle or launched.
+- The complete public/mock app and Share Extension Swift source sets passed strict Swift 6 arm64 iPhoneOS 17 typechecking.
+- The Share Extension completed an unsigned `Mock-Debug` arm64 iPhoneOS target build. The generated main-app scheme still cannot complete a normal local build because this Xcode installation reports the iOS 26.5 platform/runtime unavailable and `actool` cannot find a runtime.
+- With `Assets.xcassets` excluded on the command line only, a `Mock-Debug` target-mode build linked an unsigned arm64 iOS 17 `.app` and embedded the Share Extension. Its log ends `BUILD SUCCEEDED`. This bypass validates source composition/linking, not a normal asset-complete scheme build; the app was not signed, installed, or launched.
+- The public/mock [GitHub Actions run 31483973369](https://github.com/Klayertan/rokid-lyrics-ios/actions/runs/31483973369) passed formatting, its then-current 72 package tests, XcodeGen generation, and an unsigned generic iOS Simulator build with Xcode 16.4. It did not launch the app. The later 80/80 local result is not attributed to that historical run.
+- A genuine CocoaPods graph resolved `RGCxrClient` 1.0.4, `RGCoreKit` 0.0.2, and `CocoaLumberjack` 3.9.1. A target-mode validation compiled and linked the current arm64 iOS 17 app executable and embedded all three real frameworks. `Assets.xcassets` was excluded on that command only to bypass the broken local `actool` runtime. This is **genuine SDK link evidence**, but not a normal asset-complete workspace build.
+- The normal `Rokid Lyrics Hardware` workspace build exited before compilation because the generic iOS destination reported that iOS 26.5 is not installed. The target-mode validation app was not signed, installed, launched, authorized, connected, or hardware-tested.
 - No iOS Simulator launch has been recorded.
 - No signed iPhone run has been recorded.
 - No microphone/Shazam live recognition has been recorded.
-- No live LRCLIB request has been recorded; provider tests use an injected stub.
+- No live LRCLIB request has been recorded. The explicit uncached diagnostic action exists, while automated provider tests continue to use injected HTTP.
 - No physical Rokid device test has been recorded.
 - The proprietary SDK binary is not committed.
-- Public/mock GitHub Actions is passing for the recorded run above; it contains no proprietary Rokid framework or credential.
+- `Rokid Lyrics Mock`, `Rokid Lyrics Hardware`, and the mock-safe legacy `RokidLyrics` schemes are generated from `project.yml`. Developer signing IDs and the App Group are supplied through ignored `Config/Local.xcconfig` values.
+- Public/mock GitHub Actions is passing for the recorded historical run above; it contains no proprietary Rokid framework or credential.
 
 ## Feature matrix
 
@@ -41,19 +44,21 @@ This file uses five independent evidence categories. A feature can be implemente
 | LRCLIB `/api/search` adapter | Yes | Yes — macOS Swift package | Yes — stubbed HTTP | No | No live service test |
 | HTTP timeout/retry/cancellation layer | Yes | Yes — macOS Swift package | Yes for transient retry, long `Retry-After`, provider failure, and cancellation; no direct timeout test | No | No |
 | Memory/disk lyrics caches | Yes | Yes — macOS Swift package | Memory cache hit only | No | No |
-| ShazamKit signature identification adapter | Yes | Yes — macOS package plus device and simulator-target app objects | No direct adapter test | No | No live recognition |
-| Phone microphone `AVAudioEngine` capture | Yes | Yes — macOS package plus device and simulator-target app objects | No | No | No iPhone/audio-route test |
-| SwiftUI Home, Now Playing, Connection, Search, Settings, Diagnostics | Yes | Yes — arm64 iPhoneOS real-SDK object and arm64 iOS Simulator mock object; neither linked/bundled | No UI tests | No | No |
-| Phone-side glasses simulator view | Yes | Yes — included in both main-app objects; not launched | Domain display model is tested; view is not | No | No |
+| ShazamKit signature identification adapter | Yes | Yes — macOS package, strict arm64 iPhoneOS mock typecheck, and genuine-SDK target-mode app link | No direct adapter test | No | No live recognition |
+| Phone microphone `AVAudioEngine` capture | Yes | Yes — macOS package, strict arm64 iPhoneOS mock typecheck, and genuine-SDK target-mode app link | No | No | No iPhone/audio-route test |
+| SwiftUI Home, Now Playing, Connection, Search, Settings, Diagnostics | Yes | Yes — strict arm64 iPhoneOS mock typecheck and linked into both unsigned target-mode app validations; not launched | Diagnostic sanitizer only; no UI tests | No | No |
+| Physical-iPhone diagnostics, optional live LRCLIB action, and isolated Rokid hardware controls | Yes | Yes — strict arm64 iPhoneOS typecheck and linked into both target-mode app validations | Diagnostic sanitizer yes; UI/actions no | No | No live service/device run |
+| Phone-side glasses simulator view | Yes | Yes — strict arm64 iPhoneOS mock typecheck and linked into both target-mode app validations; not launched | Domain display model is tested; view is not | No | No |
 | Mock Rokid transport, coalescing, failure states | Yes | Yes — macOS Swift package | Yes | No | No |
-| Share parser and App Group inbox | Yes | Yes — macOS Swift package | Parser yes; inbox no | No | No |
-| iOS Share Extension UI and standard text/URL intake | Yes | Yes — 111 KB arm64 iOS Simulator object; not linked/bundled | Parser only | No | No YouTube Music share test |
+| Share parser, dynamic App Group resolver, and inbox | Yes | Yes — macOS Swift package | Parser and resolver yes; inbox persistence no | No | No |
+| iOS Share Extension UI and standard text/URL intake | Yes | Yes — strict arm64 iPhoneOS typecheck and unsigned `Mock-Debug` target build | Parser/resolver only | No | No YouTube Music share test |
 | SDK-neutral CXR-L CustomView JSON payload encoder | Yes | Yes — macOS Swift package | Yes — shape, Unicode escaping, line visibility, font scale, vertical gravity mapping, and progress coalescing | No | No |
-| Conditional real CXR-L transport/coordinator and app wiring | Yes — behind `ROKID_SDK_AVAILABLE && canImport(RGCxrClient)` | Compiled into the 2.1 MB arm64 iPhoneOS object against actual client APIs; not linked/bundled | JSON encoder only; SDK coordinator not unit tested | Not applicable to current device-only SDK binary | No |
-| Conditional Rokid glasses PCM capture and app wiring | Yes — behind the same SDK guard | Compiled into the same object against actual client APIs; not linked/bundled | No | Not applicable to current device-only SDK binary | No |
+| Conditional real CXR-L transport/coordinator and app wiring | Yes — behind `ROKID_SDK_AVAILABLE && canImport(RGCxrClient)` | Linked into an unsigned arm64 iOS 17 target-mode app with genuine `RGCxrClient`, `RGCoreKit`, and `CocoaLumberjack`; not signed/launched | JSON encoder only; SDK coordinator not unit tested | Not applicable to current device-only SDK binary | No |
+| Conditional Rokid glasses PCM capture and app wiring | Yes — behind the same SDK guard | Linked into the same genuine-SDK validation app; not signed/launched | No | Not applicable to current device-only SDK binary | No |
 | Translation and transliteration | Placeholder settings only | Settings compile in source package/app pending | No | No | No |
 | Advanced `AudioAlignmentService` | Protocol only | Yes — protocol in macOS package | No implementation | No | No |
-| Public/mock GitHub Actions workflow | Yes | Yes — run 31483973369 passed the generic mock build | 72/72 in the hosted run | No app launch | No |
+| Mock/Hardware XcodeGen configurations, iPhone-only targets, and local signing/App Group injection | Yes — app and extension force `TARGETED_DEVICE_FAMILY=1` | Yes — generated settings validated; Mock app + embedded extension and genuine-SDK Hardware app linked in separate target-mode validations under the documented asset exclusion | App Group resolver yes | No | No |
+| Public/mock GitHub Actions workflow | Yes | Yes — historical run 31483973369 passed the generic mock build | 72/72 in that hosted run; latest local is 80/80 | No app launch | No |
 
 ## Rokid SDK status
 
@@ -63,7 +68,10 @@ Those facts do **not** mean the application currently works with glasses. At thi
 
 - the SDK binary is not redistributed in the repository;
 - the SDK-neutral payload encoder exists;
-- conditional real transport/coordinator, glasses PCM, mode selection, and URL callback are wired and compiled to an object against the actual client APIs, but no final SDK-linked app bundle has been produced;
+- conditional real transport/coordinator, glasses PCM, mode selection, URL callback, and physical-test controls are wired;
+- CocoaPods resolved the genuine three-framework dependency graph, and a target-mode arm64 iOS 17 validation linked the current app executable and embedded those frameworks;
+- the validation excluded only `Assets.xcassets` to bypass this host's missing `actool` runtime, and the normal workspace/scheme build still cannot start because the iOS 26.5 platform is unavailable;
+- no asset-complete, signed, installed, or launched SDK app has been recorded;
 - no device discovery/availability, authorization, connection, display, reconnection, microphone stream, background, Unicode rendering, payload-limit, or update-rate behavior has been hardware tested.
 
 See [`ROKID_SDK_NOTES.md`](ROKID_SDK_NOTES.md) for the exact official URLs, inspected framework/interface paths, installation/legal constraints, and any status newer than this snapshot.
@@ -80,9 +88,12 @@ See [`ROKID_SDK_NOTES.md`](ROKID_SDK_NOTES.md) for the exact official URLs, insp
 - SDK-neutral previous/current/next display model and duplicate-coalescing mock transport.
 - Phone-side mock display presentation.
 - SwiftUI screens for Home, Now Playing, Connection, Search, Settings, and Developer Diagnostics.
+- Physical-iPhone diagnostics for build/runtime mode, public audio-session state and notifications, YouTube Music coexistence observations, Shazam timing/metadata, LRCLIB metadata, synchronization, and sanitized reporting.
+- Isolated hardware-test controls for connection, synthetic static/counter/Unicode display changes, clearing, glasses PCM metrics, and a guarded end-to-end start. Their presence is not a hardware result.
+- Explicit Mock and Hardware schemes plus ignored local settings for team, app/extension bundle IDs, App Group, and build-mode defaults.
 - Standard iOS Share Extension intake, explicit confirmation, and App Group handoff.
 - Bounded local lyrics cache and no committed fetched lyrics.
-- Conditional real CXR-L coordinator/display/PCM adapters and AppModel/URL-callback wiring; the default setting remains Mock Mode with the phone microphone.
+- Conditional real CXR-L coordinator/display/PCM adapters and AppModel/URL-callback wiring. Mock/legacy configurations default to Mock Mode with the phone microphone; the Hardware configuration defaults to the real adapter/glasses-PCM composition on a fresh install, without implying it has run.
 
 ## Not yet proven
 
@@ -123,6 +134,6 @@ The following claims must not appear without newer evidence:
 4. Verify microphone permission, route, Stop/cancellation, and YouTube Music coexistence on device.
 5. Verify live ShazamKit identification and live LRCLIB metadata lookup without saving lyric content as evidence.
 6. Capture actual standard share items from the current YouTube Music build and keep confirmation conservative.
-7. Produce a final SDK-linked, signed device app bundle from the object-compiling sources without committing binaries or credentials.
+7. Repair/install the missing iOS platform, produce a normal asset-complete Hardware workspace build, then sign, install, and launch it without committing binaries or credentials.
 8. Execute stages A–K in [`HARDWARE_TEST_PLAN.md`](HARDWARE_TEST_PLAN.md).
 9. Update this file only from recorded results, keeping object compilation, linking, simulator, and hardware labels separate.

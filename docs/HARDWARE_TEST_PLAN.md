@@ -2,11 +2,13 @@
 
 ## Current execution status
 
-**Plan only. No Rokid hardware stage has been executed or passed as of 2026-08-11.**
+**Plan only. No Rokid hardware stage has been executed or passed as of 2026-08-12.**
 
-The 72 passing automated tests cover domain/services behavior, retry policy, SDK-neutral display serialization, and the mock transport. They are not hardware evidence. Keep every checkbox below unchecked until the named action has been run on the recorded device and the evidence has been reviewed.
+The latest 80 passing automated tests cover domain/services behavior, retry policy, SDK-neutral display serialization, the mock transport, App Group setting resolution, and diagnostic sanitization. They are not hardware evidence. Keep every checkbox below unchecked until the named action has been run on the recorded device and the evidence has been reviewed.
 
-Real SDK installation, licensing, authorization, and adapter compilation status are tracked in [`ROKID_SDK_NOTES.md`](ROKID_SDK_NOTES.md). This plan must not be used to imply that the optional SDK binary is redistributable or that the glasses work before testing.
+Real SDK installation, licensing, authorization, and adapter compilation/link status are tracked in [`ROKID_SDK_NOTES.md`](ROKID_SDK_NOTES.md). The current target-mode validation linked and embedded the genuine dependency graph, but it excluded the asset catalog to bypass this host's missing runtime and was not signed, installed, launched, or connected to glasses. The normal Hardware workspace build remains blocked by the missing iOS 26.5 platform. This plan must not be used to imply that the optional SDK binary is redistributable or that the glasses work before testing.
+
+Use [`PHYSICAL_IPHONE_SETUP.md`](PHYSICAL_IPHONE_SETUP.md) for signing and installation, [`YOUTUBE_MUSIC_DEVICE_TEST.md`](YOUTUBE_MUSIC_DEVICE_TEST.md) for the controlled audio experiment, and a fresh copy of [`DEVICE_TEST_SESSION.md`](DEVICE_TEST_SESSION.md) for each evidence session.
 
 ## Evidence standard
 
@@ -14,7 +16,7 @@ For every run, record:
 
 - date/time and tester;
 - git commit SHA and whether the worktree was clean;
-- build configuration and `ROKID_SDK_AVAILABLE` value;
+- scheme, build configuration, compiled build mode, and active runtime mode;
 - Xcode version;
 - iPhone model and iOS version;
 - Rokid glasses model, serial number redacted, firmware version, and companion-app version if applicable;
@@ -52,6 +54,15 @@ Use these result meanings:
 - [ ] YouTube Music is installed for coexistence/share tests; its app version is recorded.
 - [ ] A screen recording/logging method has been chosen that will not expose secrets or full lyrics.
 
+## In-app evidence tools
+
+The current app includes two deliberately separated developer screens:
+
+- **Physical iPhone Tests** reports build/runtime mode, public `AVAudioSession` state and notifications, route port types, microphone activity, human-observed YouTube Music coexistence outcomes, Shazam timing/metadata, synchronization state, and an explicit uncached LRCLIB metadata/availability request. The live request never displays lyric bodies and runs only when the tester taps it.
+- **Rokid Hardware Test** exposes isolated connect/disconnect, synthetic static text, clear, counter, Unicode sequence, glasses-microphone metrics, sanitized SDK callback state, and a gated complete-pipeline action. The end-to-end button remains unavailable until the tester confirms the isolated checks and a connection exists.
+
+Copyable reports omit raw PCM, route/device names, callback URLs, credentials, tokens, session IDs, raw SDK logs, lyric bodies, and local coexistence-note text. They still contain track/provider metadata and must be reviewed before sharing. The presence of these controls is implemented/compiled evidence only; it does not mark any checkbox below.
+
 ## A. App builds without Rokid connected
 
 Goal: prove the public project remains usable without hardware or a proprietary binary.
@@ -60,7 +71,7 @@ Goal: prove the public project remains usable without hardware or a proprietary 
 - [ ] Confirm no proprietary framework, credentials, certificates, or provisioning profiles are present.
 - [ ] Run `swift test --parallel`; record pass/fail count.
 - [ ] Run `xcodegen generate`.
-- [ ] Build the Debug scheme for a generic iOS Simulator with code signing disabled.
+- [ ] Build **Rokid Lyrics Mock** / `Mock-Debug` for a generic iOS Simulator with code signing disabled.
 - [ ] Launch in an iOS Simulator.
 - [ ] Build and install a signed mock-mode app on a physical iPhone with no glasses attached.
 - [ ] Confirm launch succeeds and the connection UI says disconnected or mock, not real-connected.
@@ -172,7 +183,7 @@ Expected: supported scripts render correctly with the platform's existing capabi
 
 Goal: validate the public phone-microphone recognition path and concurrent YouTube Music behavior.
 
-Run H1 with `PhoneMicrophoneAudioCaptureService`. If the real SDK build is available, run H2 separately with `RokidMicrophoneAudioCaptureService`. Record the selected implementation; do not combine their results. The current user-facing mode toggle pairs mock display with phone capture and real display with glasses capture, so a hybrid phone-mic/real-display experiment requires an explicit injected test composition.
+Follow [`YOUTUBE_MUSIC_DEVICE_TEST.md`](YOUTUBE_MUSIC_DEVICE_TEST.md) and record results in [`DEVICE_TEST_SESSION.md`](DEVICE_TEST_SESSION.md). Run H1 with `PhoneMicrophoneAudioCaptureService`. If the real SDK build is available, run H2 separately with `RokidMicrophoneAudioCaptureService`. Record the selected implementation; do not combine their results. The current user-facing mode toggle pairs mock display with phone capture and real display with glasses capture, so a hybrid phone-mic/real-display experiment requires an explicit injected test composition.
 
 ### H1. Phone microphone
 
@@ -219,6 +230,7 @@ Expected: the verified SDK media calls produce usable ephemeral PCM and stop cle
 Goal: validate live provider behavior without publishing copyrighted content.
 
 - [ ] Search LRCLIB using metadata returned by ShazamKit.
+- [ ] Separately run **Physical iPhone Tests → LIVE LRCLIB TEST** with explicit title/artist input and record only candidate metadata/availability, never lyric bodies.
 - [ ] Record request status, elapsed time, candidate count, IDs, scores, and whether plain/synchronized data exists; do not record lyric bodies.
 - [ ] Confirm a clear outcome for zero results, one safe result, ambiguity, instrumental, and plain-only records.
 - [ ] Confirm cancellation and offline errors reach the UI.
@@ -307,6 +319,6 @@ Notes:
 
 ## Exit criteria for public hardware claims
 
-The project may say **real adapter compiled** only after a recorded `iphoneos` build succeeds against the named official SDK artifact. It may say **tested on Rokid hardware** only after at least stages C–G and J pass on a named device/firmware setup. It may say **stable for extended use** only after stage K passes with recorded measurements.
+The project may say **real adapter linked against the genuine SDK dependency chain** because the exact target-mode evidence is recorded in [`ROKID_SDK_NOTES.md`](ROKID_SDK_NOTES.md). That wording must also disclose the command-line asset exclusion and that the result was unsigned and never launched. It may say **normal Hardware workspace build passed** only after the asset-complete workspace/scheme command succeeds without that exclusion. It may say **tested on Rokid hardware** only after at least stages C–G and J pass on a named device/firmware setup. It may say **stable for extended use** only after stage K passes with recorded measurements.
 
-Until then, user-facing language must remain: the architecture and mock path are implemented; real hardware integration is optional/in progress/blocked as recorded in `STATUS.md` and `ROKID_SDK_NOTES.md`.
+Until the physical stages pass, user-facing language must remain: the architecture and mock path are implemented; the real adapter has genuine compile/link evidence but is optional, unlaunched, and not hardware-tested as recorded in `STATUS.md` and `ROKID_SDK_NOTES.md`.
