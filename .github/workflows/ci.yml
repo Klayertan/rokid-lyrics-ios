@@ -51,8 +51,8 @@ jobs:
         run: |
           xcodebuild \
             -project RokidLyrics.xcodeproj \
-            -scheme RokidLyrics \
-            -configuration Debug \
+            -scheme 'Rokid Lyrics Mock' \
+            -configuration Mock-Debug \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath "$RUNNER_TEMP/RokidLyricsDerivedData" \
             CODE_SIGNING_ALLOWED=NO \

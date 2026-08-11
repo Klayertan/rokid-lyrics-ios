@@ -210,7 +210,7 @@ struct SafeDeviceDiagnosticReport: Encodable {
         let session: String
         let customView: String
         let audioStream: String
-        let lastSyntheticText: String?
+        let lastSyntheticTextCharacterCount: Int?
         let events: [Event]
         let microphone: GlassesMicrophone
     }

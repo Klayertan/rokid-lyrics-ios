@@ -540,7 +540,7 @@
 				PRODUCT_NAME = "Share to Rokid Lyrics";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = "Rokid-Hardware-Debug";
 		};
@@ -561,7 +561,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "$(ROKID_LYRICS_BUNDLE_ID)";
 				PRODUCT_NAME = "Rokid Lyrics";
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -581,7 +581,7 @@
 				PRODUCT_NAME = "Share to Rokid Lyrics";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -602,7 +602,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "$(ROKID_LYRICS_BUNDLE_ID)";
 				PRODUCT_NAME = "Rokid Lyrics";
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = "Rokid-Hardware-Release";
 		};
@@ -622,7 +622,7 @@
 				PRODUCT_NAME = "Share to Rokid Lyrics";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = "Mock-Release";
 		};
@@ -643,7 +643,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "$(ROKID_LYRICS_BUNDLE_ID)";
 				PRODUCT_NAME = "Rokid Lyrics";
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -664,7 +664,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "$(ROKID_LYRICS_BUNDLE_ID)";
 				PRODUCT_NAME = "Rokid Lyrics";
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = "Rokid-Hardware-Debug";
 		};
@@ -685,7 +685,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "$(ROKID_LYRICS_BUNDLE_ID)";
 				PRODUCT_NAME = "Rokid Lyrics";
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = "Mock-Debug";
 		};
@@ -770,7 +770,7 @@
 				PRODUCT_NAME = "Share to Rokid Lyrics";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = "Mock-Debug";
 		};
@@ -791,7 +791,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "$(ROKID_LYRICS_BUNDLE_ID)";
 				PRODUCT_NAME = "Rokid Lyrics";
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = "Mock-Release";
 		};
@@ -935,7 +935,7 @@
 				PRODUCT_NAME = "Share to Rokid Lyrics";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = "Rokid-Hardware-Release";
 		};
@@ -1014,7 +1014,7 @@
 				PRODUCT_NAME = "Share to Rokid Lyrics";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};

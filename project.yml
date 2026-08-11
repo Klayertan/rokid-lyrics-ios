@@ -54,6 +54,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: "$(ROKID_LYRICS_BUNDLE_ID)"
         PRODUCT_NAME: Rokid Lyrics
+        TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: RokidLyrics/Resources/Info.plist
@@ -73,6 +74,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: "$(ROKID_LYRICS_SHARE_BUNDLE_ID)"
         PRODUCT_NAME: Share to Rokid Lyrics
+        TARGETED_DEVICE_FAMILY: "1"
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
         GENERATE_INFOPLIST_FILE: NO

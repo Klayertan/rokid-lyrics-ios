@@ -36,6 +36,13 @@ struct RokidHardwareTestView: View {
                 .padding(.vertical, 6)
             LabeledContent("Active runtime", value: model.activeRuntimeModeText)
             LabeledContent("Transport state", value: model.connectionStateText)
+            if model.isLyricsSessionActive {
+                Text("Stop the lyric pipeline before running isolated hardware actions.")
+                    .foregroundStyle(.orange)
+                Button("STOP LYRIC PIPELINE", role: .destructive) {
+                    model.stopLyrics()
+                }
+            }
         } footer: {
             Text(
                 model.isRealRokidSDKCompiled
@@ -54,6 +61,7 @@ struct RokidHardwareTestView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .disabled(model.isLyricsSessionActive)
 
             Button(role: .destructive) {
                 model.hardwareTestDisconnect()
@@ -71,20 +79,26 @@ struct RokidHardwareTestView: View {
             Button("SEND TEST TEXT") {
                 model.hardwareTestSendText(testText)
             }
-            .disabled(testText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(
+                model.isLyricsSessionActive
+                    || testText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            )
 
             Button("CLEAR DISPLAY", role: .destructive) {
                 model.hardwareTestClearDisplay()
             }
+            .disabled(model.isLyricsSessionActive)
 
             Button("SEND COUNTER") {
                 model.hardwareTestSendCounter()
             }
+            .disabled(model.isLyricsSessionActive)
             LabeledContent("Next counter", value: "Test \(model.hardwareTestCounter + 1)")
 
             Button("UNICODE TEST") {
                 model.hardwareTestSendUnicodeSequence()
             }
+            .disabled(model.isLyricsSessionActive)
             VStack(alignment: .leading, spacing: 4) {
                 Text("Hello Rokid")
                 Text("日本語テスト")
@@ -149,7 +163,11 @@ struct RokidHardwareTestView: View {
                 Button("TEST GLASSES MICROPHONE") {
                     model.startGlassesMicrophoneTest()
                 }
-                .disabled(!model.isRealRokidSDKCompiled || model.settings.mockMode)
+                .disabled(
+                    !model.isRealRokidSDKCompiled
+                        || model.settings.mockMode
+                        || model.isLyricsSessionActive
+                )
             }
 
             LabeledContent("State", value: microphone.state)
@@ -196,6 +214,7 @@ struct RokidHardwareTestView: View {
                 !isolatedTestsConfirmed
                     || model.connectionState != .connected
                     || model.isMicrophoneActive
+                    || model.isLyricsSessionActive
             )
         } header: {
             Text("End-to-end mode")

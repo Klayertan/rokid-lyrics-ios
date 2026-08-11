@@ -104,13 +104,13 @@ struct PhysicalDeviceDiagnosticsView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(model.isMicrophoneActive)
+            .disabled(model.isMicrophoneActive || model.isLyricsSessionActive)
 
-            if model.isMicrophoneActive {
+            if model.isLyricsSessionActive {
                 Button(role: .destructive) {
                     model.stopLyrics()
                 } label: {
-                    Label("Stop test", systemImage: "stop.fill")
+                    Label("STOP CURRENT SESSION", systemImage: "stop.fill")
                 }
             }
 
@@ -131,7 +131,7 @@ struct PhysicalDeviceDiagnosticsView: View {
             coexistenceToggle("Paused", keyPath: \.paused)
             coexistenceToggle("Route changed", keyPath: \.routeChanged)
             coexistenceToggle("Became inaudible", keyPath: \.becameInaudible)
-            TextField("Optional test notes (review before copying)", text: coexistenceNotesBinding)
+            TextField("Optional local notes (not copied)", text: coexistenceNotesBinding)
         } header: {
             Text("YouTube Music coexistence")
         } footer: {

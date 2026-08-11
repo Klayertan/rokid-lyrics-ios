@@ -32,20 +32,14 @@ final class AudioSessionDiagnosticsMonitor {
             return
         }
 
-        observe(AVAudioSession.interruptionNotification) { [weak self] notification in
-            self?.handleInterruption(notification)
-        }
-        observe(AVAudioSession.routeChangeNotification) { [weak self] notification in
-            self?.handleRouteChange(notification)
-        }
-        observe(AVAudioSession.silenceSecondaryAudioHintNotification) { [weak self] notification in
-            self?.handleSecondaryAudioHint(notification)
-        }
-        observe(AVAudioSession.mediaServicesWereLostNotification) { [weak self] _ in
+        observeInterruptionNotifications()
+        observeRouteChangeNotifications()
+        observeSecondaryAudioHintNotifications()
+        observe(AVAudioSession.mediaServicesWereLostNotification) { [weak self] in
             self?.appendEvent(category: "media-services", detail: "Media services were lost")
             self?.refresh()
         }
-        observe(AVAudioSession.mediaServicesWereResetNotification) { [weak self] _ in
+        observe(AVAudioSession.mediaServicesWereResetNotification) { [weak self] in
             self?.appendEvent(category: "media-services", detail: "Media services were reset")
             self?.refresh()
         }
@@ -123,30 +117,71 @@ final class AudioSessionDiagnosticsMonitor {
 
     private func observe(
         _ name: Notification.Name,
-        handler: @escaping @MainActor (Notification) -> Void
+        handler: @escaping @MainActor () -> Void
     ) {
         let token = notificationCenter.addObserver(
             forName: name,
             object: session,
             queue: .main
-        ) { notification in
+        ) { _ in
             MainActor.assumeIsolated {
-                handler(notification)
+                handler()
             }
         }
         observerTokens.append(token)
     }
 
-    private func handleInterruption(_ notification: Notification) {
-        let rawType = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+    private func observeInterruptionNotifications() {
+        let token = notificationCenter.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: session,
+            queue: .main
+        ) { [weak self] notification in
+            let rawType = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+            let rawOptions = notification.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt
+            MainActor.assumeIsolated {
+                self?.handleInterruption(rawType: rawType, rawOptions: rawOptions)
+            }
+        }
+        observerTokens.append(token)
+    }
+
+    private func observeRouteChangeNotifications() {
+        let token = notificationCenter.addObserver(
+            forName: AVAudioSession.routeChangeNotification,
+            object: session,
+            queue: .main
+        ) { [weak self] notification in
+            let rawReason = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
+            MainActor.assumeIsolated {
+                self?.handleRouteChange(rawReason: rawReason)
+            }
+        }
+        observerTokens.append(token)
+    }
+
+    private func observeSecondaryAudioHintNotifications() {
+        let token = notificationCenter.addObserver(
+            forName: AVAudioSession.silenceSecondaryAudioHintNotification,
+            object: session,
+            queue: .main
+        ) { [weak self] notification in
+            let rawType = notification.userInfo?[AVAudioSessionSilenceSecondaryAudioHintTypeKey] as? UInt
+            MainActor.assumeIsolated {
+                self?.handleSecondaryAudioHint(rawType: rawType)
+            }
+        }
+        observerTokens.append(token)
+    }
+
+    private func handleInterruption(rawType: UInt?, rawOptions: UInt?) {
         let type = rawType.flatMap(AVAudioSession.InterruptionType.init(rawValue:))
         switch type {
         case .began:
             snapshot.interruptionState = "Began"
             appendEvent(category: "interruption", detail: "Interruption began")
         case .ended:
-            let rawOptions = notification.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
-            let options = AVAudioSession.InterruptionOptions(rawValue: rawOptions)
+            let options = AVAudioSession.InterruptionOptions(rawValue: rawOptions ?? 0)
             snapshot.interruptionState = options.contains(.shouldResume) ? "Ended; resume suggested" : "Ended"
             appendEvent(category: "interruption", detail: snapshot.interruptionState)
         case nil:
@@ -159,8 +194,7 @@ final class AudioSessionDiagnosticsMonitor {
         refresh()
     }
 
-    private func handleRouteChange(_ notification: Notification) {
-        let rawReason = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
+    private func handleRouteChange(rawReason: UInt?) {
         let reason = rawReason.flatMap(AVAudioSession.RouteChangeReason.init(rawValue:))
         snapshot.routeChangeCount += 1
         refresh()
@@ -170,8 +204,7 @@ final class AudioSessionDiagnosticsMonitor {
         )
     }
 
-    private func handleSecondaryAudioHint(_ notification: Notification) {
-        let rawType = notification.userInfo?[AVAudioSessionSilenceSecondaryAudioHintTypeKey] as? UInt
+    private func handleSecondaryAudioHint(rawType: UInt?) {
         let type = rawType.flatMap(AVAudioSession.SilenceSecondaryAudioHintType.init(rawValue:))
         let detail: String
         switch type {

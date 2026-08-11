@@ -344,6 +344,10 @@ final class AppModel {
             : "iPhone microphone"
     }
 
+    var isLyricsSessionActive: Bool {
+        synchronizationState != .idle
+    }
+
     func handleRokidOpenURL(_ url: URL) {
         #if ROKID_SDK_AVAILABLE && canImport(RGCxrClient)
             _ = rokidCoordinator?.handleOpenURL(url)
@@ -482,6 +486,8 @@ final class AppModel {
                 let synchronizedCandidates = candidates.filter {
                     !$0.isInstrumental && $0.synchronizedLyrics?.isEmpty == false
                 }
+                liveLyricsDiagnostics.synchronizedLyricsAvailable =
+                    !synchronizedCandidates.isEmpty
                 if case let .match(result) = scorer.selectBest(
                     query: query,
                     candidates: synchronizedCandidates
@@ -510,7 +516,7 @@ final class AppModel {
     }
 
     func startMusicCoexistenceTest() {
-        guard pipelineTask == nil else {
+        guard !isLyricsSessionActive, pipelineTask == nil, glassesMicrophoneTask == nil else {
             lastError = "Stop the current lyrics session before starting the coexistence test."
             return
         }
@@ -531,6 +537,7 @@ final class AppModel {
     }
 
     func hardwareTestConnect() {
+        guard requireIsolatedHardwareMode() else { return }
         hardwareTestTask?.cancel()
         hardwareTestTask = Task { [weak self] in
             guard let self else { return }
@@ -555,15 +562,18 @@ final class AppModel {
     }
 
     func hardwareTestSendText(_ text: String) {
+        guard requireIsolatedHardwareMode() else { return }
         sendSyntheticHardwareText(text, category: "static-text")
     }
 
     func hardwareTestSendCounter() {
+        guard requireIsolatedHardwareMode() else { return }
         hardwareTestCounter += 1
         sendSyntheticHardwareText("Test \(hardwareTestCounter)", category: "counter")
     }
 
     func hardwareTestSendUnicodeSequence() {
+        guard requireIsolatedHardwareMode() else { return }
         hardwareTestTask?.cancel()
         hardwareTestTask = Task { [weak self] in
             guard let self else { return }
@@ -582,6 +592,7 @@ final class AppModel {
     }
 
     func hardwareTestClearDisplay() {
+        guard requireIsolatedHardwareMode() else { return }
         hardwareTestTask?.cancel()
         hardwareTestTask = Task { [weak self] in
             guard let self else { return }
@@ -610,7 +621,7 @@ final class AppModel {
             )
             return
         }
-        guard pipelineTask == nil, glassesMicrophoneTask == nil else {
+        guard !isLyricsSessionActive, pipelineTask == nil, glassesMicrophoneTask == nil else {
             glassesMicrophoneDiagnostics.state = "Busy"
             glassesMicrophoneDiagnostics.error = "Stop recognition or the current microphone test first."
             return
@@ -620,20 +631,24 @@ final class AppModel {
         glassesMicrophoneTask = Task { [weak self] in
             guard let self else { return }
             let startedAt = ProcessInfo.processInfo.systemUptime
+            var byteCount = 0
+            var frameCount = 0
+            var bufferCount = 0
+            var lastSampleRate: Double?
+            var lastChannelCount: Int?
             isMicrophoneActive = true
             do {
                 let stream = try await audioCapture.startCapture()
                 glassesMicrophoneDiagnostics.state = "Waiting for PCM"
                 var lastPublishedAt = startedAt
-                var byteCount = 0
-                var frameCount = 0
-                var bufferCount = 0
 
                 for try await frame in stream {
                     try Task.checkCancellation()
                     bufferCount += 1
                     byteCount += frame.samples.count * MemoryLayout<Int16>.size
                     frameCount += frame.samples.count / max(1, frame.channelCount)
+                    lastSampleRate = frame.sampleRate
+                    lastChannelCount = frame.channelCount
                     let now = ProcessInfo.processInfo.systemUptime
                     if !glassesMicrophoneDiagnostics.streamConnected || now - lastPublishedAt >= 0.2 {
                         glassesMicrophoneDiagnostics.state = "Receiving PCM"
@@ -648,12 +663,25 @@ final class AppModel {
                         refreshRokidHardwareDiagnostics()
                     }
                 }
+                glassesMicrophoneDiagnostics.state = "Stream ended"
             } catch is CancellationError {
                 glassesMicrophoneDiagnostics.state = "Stopped"
             } catch {
                 glassesMicrophoneDiagnostics.state = "Error"
                 glassesMicrophoneDiagnostics.error = DiagnosticSanitizer.sanitizedError(
                     error.localizedDescription
+                )
+            }
+            if bufferCount > 0 {
+                glassesMicrophoneDiagnostics.streamConnected = true
+                glassesMicrophoneDiagnostics.sampleRate = lastSampleRate
+                glassesMicrophoneDiagnostics.channelCount = lastChannelCount
+                glassesMicrophoneDiagnostics.decodedByteCount = byteCount
+                glassesMicrophoneDiagnostics.pcmFrameCount = frameCount
+                glassesMicrophoneDiagnostics.bufferCount = bufferCount
+                glassesMicrophoneDiagnostics.duration = max(
+                    0,
+                    ProcessInfo.processInfo.systemUptime - startedAt
                 )
             }
             await audioCapture.stopCapture()
@@ -783,7 +811,8 @@ final class AppModel {
                 paused: musicCoexistenceDiagnostics.paused,
                 routeChanged: musicCoexistenceDiagnostics.routeChanged,
                 becameInaudible: musicCoexistenceDiagnostics.becameInaudible,
-                notes: DiagnosticSanitizer.sanitizedError(musicCoexistenceDiagnostics.notes) ?? ""
+                notes: musicCoexistenceDiagnostics.notes.isEmpty
+                    ? "" : "<user notes omitted from copied diagnostics>"
             ),
             rokidHardware: .init(
                 connection: rokidHardwareDiagnostics.connection,
@@ -791,7 +820,7 @@ final class AppModel {
                 session: rokidHardwareDiagnostics.session,
                 customView: rokidHardwareDiagnostics.customView,
                 audioStream: rokidHardwareDiagnostics.audioStream,
-                lastSyntheticText: hardwareTestLastSyntheticText,
+                lastSyntheticTextCharacterCount: hardwareTestLastSyntheticText?.count,
                 events: rokidHardwareDiagnostics.events.map {
                     .init(
                         elapsedSeconds: $0.elapsedSeconds,
@@ -904,6 +933,7 @@ final class AppModel {
             let synchronizedCandidates = candidates.filter {
                 !$0.isInstrumental && $0.synchronizedLyrics?.isEmpty == false
             }
+            lyricsDiagnostics.synchronizedLyricsAvailable = !synchronizedCandidates.isEmpty
             switch scorer.selectBest(query: query, candidates: synchronizedCandidates) {
             case let .match(result):
                 lyricsDiagnostics.selectedResult = candidateDiagnostic(
@@ -936,7 +966,11 @@ final class AppModel {
             }
         } catch is CancellationError {
             isMicrophoneActive = false
-            recognitionDiagnostics.state = "Cancelled"
+            if recognitionDiagnostics.matchTimestamp == nil {
+                recognitionDiagnostics.state = "Cancelled"
+            } else {
+                lyricsDiagnostics.state = "Cancelled"
+            }
             await audioCapture.stopCapture()
         } catch {
             isMicrophoneActive = false
@@ -1132,6 +1166,14 @@ final class AppModel {
         )
     }
 
+    private func requireIsolatedHardwareMode() -> Bool {
+        guard !isLyricsSessionActive, pipelineTask == nil, glassesMicrophoneTask == nil else {
+            lastError = "Stop the lyrics pipeline and microphone test before an isolated hardware action."
+            return false
+        }
+        return true
+    }
+
     private func finishMusicCoexistenceTestIfNeeded() {
         guard musicCoexistenceDiagnostics.state == "Running recognition" else { return }
         audioSessionDiagnostics.refresh()
@@ -1188,7 +1230,10 @@ final class AppModel {
         lastTransportContent = TransportContent(display)
         lastTransportSendTime = ProcessInfo.processInfo.systemUptime
         hardwareTestLastSyntheticText = text
-        appendMockHardwareEvent(category: category, detail: "Sent synthetic text: \(text)")
+        appendMockHardwareEvent(
+            category: category,
+            detail: "Sent synthetic text (\(text.count) characters)"
+        )
         await refreshConnectionState()
         refreshRokidHardwareDiagnostics()
     }
