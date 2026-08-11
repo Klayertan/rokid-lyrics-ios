@@ -1,0 +1,78 @@
+name: RokidLyrics
+options:
+  minimumXcodeGenVersion: 2.46.0
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "17.0"
+configs:
+  Debug: debug
+  Release: release
+configFiles:
+  Debug: Config/Base.xcconfig
+  Release: Config/Base.xcconfig
+packages:
+  RokidLyricsPackage:
+    path: .
+settings:
+  base:
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    TARGETED_DEVICE_FAMILY: "1"
+    SUPPORTS_MACCATALYST: NO
+    SWIFT_STRICT_CONCURRENCY: complete
+targets:
+  RokidLyrics:
+    type: application
+    platform: iOS
+    sources:
+      - path: RokidLyrics
+    resources:
+      - path: RokidLyrics/Resources
+    info:
+      path: RokidLyrics/Resources/Info.plist
+    entitlements:
+      path: RokidLyrics/Resources/RokidLyrics.entitlements
+    dependencies:
+      - package: RokidLyricsPackage
+        product: RokidLyricsCore
+      - package: RokidLyricsPackage
+        product: RokidLyricsServices
+      - target: RokidLyricsShareExtension
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.rokidlyrics.app
+        PRODUCT_NAME: Rokid Lyrics
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_CFBundleDisplayName: Rokid Lyrics
+  RokidLyricsShareExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: RokidLyricsShareExtension
+    info:
+      path: RokidLyricsShareExtension/Info.plist
+    entitlements:
+      path: RokidLyricsShareExtension/RokidLyricsShareExtension.entitlements
+    dependencies:
+      - package: RokidLyricsPackage
+        product: RokidLyricsCore
+      - package: RokidLyricsPackage
+        product: RokidLyricsServices
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.rokidlyrics.app.ShareExtension
+        PRODUCT_NAME: Share to Rokid Lyrics
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+schemes:
+  RokidLyrics:
+    build:
+      targets:
+        RokidLyrics: all
+        RokidLyricsShareExtension: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+

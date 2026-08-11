@@ -1,0 +1,5 @@
+// Copy only after obtaining an official, distributable Rokid iOS SDK package.
+// Do not commit credentials, serial-number authorization, or proprietary binaries.
+ROKID_SDK_AVAILABLE = NO
+// ROKID_SDK_SEARCH_PATH = /absolute/path/to/verified/sdk
+

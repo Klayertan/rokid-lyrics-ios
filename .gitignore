@@ -1,0 +1,28 @@
+# Xcode
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+*.xccheckout
+*.xcscmblueprint
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Signing and secrets
+*.cer
+*.p12
+*.mobileprovision
+*.provisionprofile
+Config/Local.xcconfig
+RokidSDK/
+Vendor/RokidSDK/
+
+# Local tooling
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
