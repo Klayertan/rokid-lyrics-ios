@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "build/**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mock-build-and-test:
+    name: Mock build and test
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      ROKID_SDK_AVAILABLE: "NO"
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16.4
+        run: sudo xcode-select --switch /Applications/Xcode_16.4.app/Contents/Developer
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Lint Swift formatting
+        run: xcrun swift-format lint -s -r Sources Tests RokidLyrics RokidLyricsShareExtension
+
+      - name: Run package tests
+        run: swift test --parallel
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build public iOS Simulator configuration
+        run: |
+          xcodebuild \
+            -project RokidLyrics.xcodeproj \
+            -scheme RokidLyrics \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/RokidLyricsDerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            ROKID_SDK_AVAILABLE=NO \
+            build
