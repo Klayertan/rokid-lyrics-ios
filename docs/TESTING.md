@@ -105,7 +105,7 @@ xcodebuild \
 7. regenerates the Xcode project;
 8. builds the generic iOS Simulator configuration with signing disabled and `ROKID_SDK_AVAILABLE=NO`.
 
-The workflow intentionally has no proprietary framework or Rokid credential. The file's presence is not a passing result; no GitHub Actions run had been observed when this document snapshot was written. Record the actual workflow URL and conclusion before changing CI status to passing.
+The workflow intentionally has no proprietary framework or Rokid credential. [GitHub Actions run 31483973369](https://github.com/Klayertan/rokid-lyrics-ios/actions/runs/31483973369) completed successfully on `main`: formatting, all 72 package tests, project generation, and the unsigned generic iOS Simulator build passed. The job did not launch the app, so Simulator-tested status remains “No.”
 
 ## Coverage by subsystem
 

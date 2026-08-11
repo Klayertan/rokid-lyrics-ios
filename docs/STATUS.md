@@ -17,6 +17,7 @@ This file uses five independent evidence categories. A feature can be implemente
 - `swift test --parallel`: **72 passed, 0 failed** on 2026-08-11 (53 XCTest + 19 Swift Testing).
 - That run compiled `RokidLyricsCore` and `RokidLyricsServices` for the macOS package test host.
 - A generated-project iOS Simulator build was attempted, but `xcodebuild` exited 70 before the Xcode target build because the local installation is missing the required system `CoreSimulator.framework` used by `IDESimulatorFoundation`.
+- The public/mock [GitHub Actions run 31483973369](https://github.com/Klayertan/rokid-lyrics-ios/actions/runs/31483973369) passed formatting, all 72 package tests, XcodeGen generation, and an unsigned generic iOS Simulator build with Xcode 16.4. It did not launch the app.
 - After the conditional CXR-L path was wired into `AppModel` and the SwiftUI URL callback, the complete main-app Swift source set passed strict Swift 6 arm64 iPhoneOS 17 compilation with whole-module optimization and emitted a 2.1 MB object against the inspected real `RGCxrClient` interface. This was **compile-to-object evidence only**, not a final link/app bundle: the check used a temporary empty `RGCoreKit` module solely to satisfy the client framework interface import.
 - Strict Swift 6 whole-module compilation also emitted a 1.9 MB arm64 iOS 17 Simulator object for the public/mock app and a 111 KB object for the Share Extension. Neither was linked into an Xcode-built bundle or launched.
 - No iOS Simulator launch has been recorded.
@@ -25,7 +26,7 @@ This file uses five independent evidence categories. A feature can be implemente
 - No live LRCLIB request has been recorded; provider tests use an injected stub.
 - No physical Rokid device test has been recorded.
 - The proprietary SDK binary is not committed.
-- Public/mock GitHub Actions configuration exists, but no workflow run result has been observed in this snapshot.
+- Public/mock GitHub Actions is passing for the recorded run above; it contains no proprietary Rokid framework or credential.
 
 ## Feature matrix
 
@@ -52,7 +53,7 @@ This file uses five independent evidence categories. A feature can be implemente
 | Conditional Rokid glasses PCM capture and app wiring | Yes — behind the same SDK guard | Compiled into the same object against actual client APIs; not linked/bundled | No | Not applicable to current device-only SDK binary | No |
 | Translation and transliteration | Placeholder settings only | Settings compile in source package/app pending | No | No | No |
 | Advanced `AudioAlignmentService` | Protocol only | Yes — protocol in macOS package | No implementation | No | No |
-| Public/mock GitHub Actions workflow | Yes | Not yet run on GitHub | Not applicable | No | No |
+| Public/mock GitHub Actions workflow | Yes | Yes — run 31483973369 passed the generic mock build | 72/72 in the hosted run | No app launch | No |
 
 ## Rokid SDK status
 
@@ -95,7 +96,6 @@ The following claims must not appear without newer evidence:
 - “Japanese, Chinese, and Korean glyphs render on the glasses.”
 - “Rokid glasses microphone audio is available to this app.”
 - “The app is App Store ready.”
-- “CI is passing.”
 
 ## Known limitations and intentional remainders
 

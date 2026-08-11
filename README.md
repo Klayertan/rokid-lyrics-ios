@@ -17,7 +17,7 @@ The phone app, share extension, synchronization engine, LRCLIB client, and mock 
 | Category | Current evidence |
 | --- | --- |
 | **Implemented** | Core models/protocols, LRC parser/timeline, matching, LRCLIB networking/cache, phone microphone capture, ShazamKit adapter, synchronization engine, SwiftUI app, Share extension, diagnostics, mock transport, SDK-neutral CustomView payload encoding, and conditional real-SDK coordinator/display/glasses-PCM source. |
-| **Compiled** | `RokidLyricsCore` and `RokidLyricsServices` compile through Swift Package Manager. The mock app and Share extension passed strict Swift 6 whole-module arm64 iOS 17 Simulator object compilation. With `ROKID_SDK_AVAILABLE`, the full app source set passed strict arm64 iPhoneOS 17 typechecking and object emission against the actual RGCxrClient interface; this used a temporary empty `RGCoreKit` module and was not a link/app build. Generated-project verification is assigned to CI because the current local host could not load CoreSimulator. |
+| **Compiled** | `RokidLyricsCore` and `RokidLyricsServices` compile through Swift Package Manager. The mock app and Share extension passed strict Swift 6 whole-module arm64 iOS 17 Simulator object compilation. The public generated Xcode project also passed an unsigned generic Simulator build in [GitHub Actions](https://github.com/Klayertan/rokid-lyrics-ios/actions/runs/31483973369). With `ROKID_SDK_AVAILABLE`, the full app source set passed strict arm64 iPhoneOS 17 typechecking and object emission against the actual RGCxrClient interface; this used a temporary empty `RGCoreKit` module and was not a link/app build. The current local host still cannot load CoreSimulator. |
 | **Unit tested** | 72 passed, 0 failed in the latest local `swift test --parallel` run. |
 | **Simulator tested** | Not launched or interactively tested. A generic Simulator build alone will not change this category. |
 | **Real Rokid SDK** | Official 1.0.4 metadata, 1.0.4.2 framework archive, headers, and sample were inspected externally. The conditional coordinator, display transport, glasses-PCM service, `AppModel` selection, and URL callback wiring passed the compiler check above, but no SDK-linked, signed, or launched app build was recorded. |
@@ -161,7 +161,7 @@ xcodebuild \
 
 [`RokidLyrics.xcodeproj`](RokidLyrics.xcodeproj) is generated output. Run `xcodegen generate` after changing [`project.yml`](project.yml), target files, entitlements, or configuration; do not hand-edit the generated project.
 
-CI runs `swift test --parallel` and the same generic iOS Simulator build on a public GitHub-hosted macOS runner without downloading or linking the proprietary Rokid SDK.
+CI runs formatting checks, `swift test --parallel`, and the same generic iOS Simulator build on a public GitHub-hosted macOS runner without downloading or linking the proprietary Rokid SDK. The first recorded [main-branch run](https://github.com/Klayertan/rokid-lyrics-ios/actions/runs/31483973369) passed all steps.
 
 ## Running
 
