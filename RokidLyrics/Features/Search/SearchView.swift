@@ -3,9 +3,30 @@ import SwiftUI
 
 struct SearchView: View {
     @Bindable var model: AppModel
+    @State private var pastedShareText = ""
 
     var body: some View {
         List {
+            if !model.capabilities.shareExtensionAvailable {
+                Section {
+                    TextField("Paste a shared song title/artist or link", text: $pastedShareText, axis: .vertical)
+                        .lineLimit(1...3)
+                    Button {
+                        model.applyPastedShareText(pastedShareText)
+                        pastedShareText = ""
+                    } label: {
+                        Label("Use Pasted Text", systemImage: "doc.on.clipboard")
+                    }
+                    .disabled(pastedShareText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                } header: {
+                    Text("Paste a shared song")
+                } footer: {
+                    Text(
+                        "The Share Extension isn't included in this build. Paste copied text or a link here instead; the same conservative parser fills in the fields below for you to confirm."
+                    )
+                }
+            }
+
             if let url = model.pendingSharedURL {
                 Section {
                     Label {

@@ -30,6 +30,15 @@ struct DeveloperDiagnosticsView: View {
                 }
             }
 
+            Section("Build mode") {
+                LabeledContent("Build mode", value: model.capabilities.buildMode.capitalized)
+                LabeledContent("Personal Team mode", value: model.capabilities.personalTeamMode ? "Yes" : "No")
+                LabeledContent("ShazamKit", value: availability(model.capabilities.shazamRecognitionAvailable))
+                LabeledContent("Share Extension", value: availability(model.capabilities.shareExtensionAvailable))
+                LabeledContent("App Group", value: availability(model.capabilities.appGroupAvailable))
+                LabeledContent("Rokid SDK", value: availability(model.capabilities.rokidHardwareAvailable))
+            }
+
             Section("Live state") {
                 LabeledContent("Rokid", value: model.connectionStateText)
                 LabeledContent("Recognition", value: model.recognitionStateText)
@@ -82,6 +91,10 @@ struct DeveloperDiagnosticsView: View {
         .navigationTitle("Diagnostics")
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.refreshDeviceDiagnostics() }
+    }
+
+    private func availability(_ isAvailable: Bool) -> String {
+        isAvailable ? "Available" : "Unavailable"
     }
 
     private var safeRouteTypes: String {

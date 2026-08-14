@@ -1,0 +1,28 @@
+#include "Base.xcconfig"
+
+// Personal Team / free Apple ID development mode: sideload-only from Xcode,
+// no App Store/TestFlight distribution, and no capability this configuration
+// does not actually declare. See docs/PERSONAL_TEAM_MODE.md.
+ROKID_SDK_AVAILABLE = NO
+ROKID_LYRICS_SDK_COMPILATION_CONDITION =
+ROKID_LYRICS_BUILD_MODE = personal
+ROKID_LYRICS_DEFAULT_MOCK_MODE = YES
+ROKID_LYRICS_PERSONAL_TEAM_MODE = YES
+
+// The RokidLyricsPersonal target has no dependency on RokidLyricsShareExtension
+// and its entitlements file declares no application-groups key, so neither
+// capability is requested during signing.
+ROKID_LYRICS_SHARE_EXTENSION_AVAILABLE = NO
+ROKID_LYRICS_APP_GROUP_AVAILABLE = NO
+
+// ShazamKit provisioning under a free Personal Team is currently unverified
+// (docs/PERSONAL_TEAM_MODE.md). This project never adds a ShazamKit
+// entitlement key, so the framework itself compiles and links regardless;
+// ROKID_LYRICS_SHAZAM_AVAILABLE therefore stays at Base.xcconfig's YES
+// default and is intentionally left overridable here (unlike the SDK
+// condition above, which the dedicated Mock/Hardware configs always pin).
+// If your own Personal Team signing ever rejects the ShazamKit App ID
+// service, add these two lines to your gitignored Config/Local.xcconfig and
+// run xcodegen generate again:
+//   ROKID_LYRICS_SHAZAM_AVAILABLE = NO
+//   ROKID_LYRICS_SHAZAM_COMPILATION_CONDITION =

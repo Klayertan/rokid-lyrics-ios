@@ -84,6 +84,16 @@ flowchart TD
 
 The reusable domain and service modules are Swift packages. The iPhone app and Share extension are generated from [`project.yml`](project.yml) with XcodeGen. SDK-specific types must remain inside a transport adapter and must never escape into the synchronization engine or SwiftUI views. More detail is in [Architecture](docs/ARCHITECTURE.md).
 
+## Development modes
+
+| Scheme | Use it when | Signing needs | Share Extension / App Group | ShazamKit |
+| --- | --- | --- | --- | --- |
+| **Rokid Lyrics Personal** | You want to try Rokid Lyrics on your own iPhone without a paid Apple Developer Program membership. | A free Apple ID added to Xcode as a Personal Team. No App ID/App Group/ShazamKit registration in the Apple Developer portal. | Not included — its target has no Share Extension dependency and its entitlements declare no App Group. Search/paste manual fallback instead. | Compiles in by default; **availability under a free Personal Team is currently unverified**, with a documented opt-out if your signing rejects it. |
+| **Rokid Lyrics Mock** | Public/CI builds, Simulator work, or a signed-iPhone install without the proprietary Rokid SDK. | Works unsigned for Simulator; a paid or free Apple Developer team for a signed iPhone install (full App Group/Share Extension/ShazamKit capability set). | Included and embedded. | Included; requires the ShazamKit App Service enabled for the signing App ID (see [Apple and ShazamKit configuration](#apple-and-shazamkit-configuration)). |
+| **Rokid Lyrics Hardware** | You have the official Rokid CXR-L SDK installed locally and real Rokid Glasses to test against. | Everything Mock's signed-iPhone path requires, plus the CocoaPods-installed proprietary SDK and a physical arm64 iPhone (no Simulator slice). | Included and embedded, same as Mock. | Included, same as Mock. |
+
+Personal mode does not claim any Rokid hardware or confirmed Shazam capability — see [`docs/PERSONAL_TEAM_MODE.md`](docs/PERSONAL_TEAM_MODE.md) for exactly what is verified to work, what is unverified, and the manual search/paste workflow it uses in place of the Share Extension and (if disabled) automatic recognition. Setup steps are in [Physical iPhone setup → Free Apple Account / Personal Team](docs/PHYSICAL_IPHONE_SETUP.md#free-apple-account--personal-team).
+
 ## How it works
 
 1. The user explicitly presses **Start Lyrics**.
@@ -404,6 +414,7 @@ Rokid SDK binaries, samples, trademarks, and documentation remain subject to Rok
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
+- [Personal Team mode](docs/PERSONAL_TEAM_MODE.md)
 - [Project status](docs/STATUS.md)
 - [Rokid SDK notes](docs/ROKID_SDK_NOTES.md)
 - [YouTube Music and iOS limitations](docs/YOUTUBE_MUSIC_LIMITATIONS.md)

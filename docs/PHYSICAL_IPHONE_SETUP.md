@@ -4,6 +4,8 @@
 
 This guide takes a new contributor from a clean clone to a development-signed install on a physical iPhone. Start with the public **Rokid Lyrics Mock** configuration. Configure the optional proprietary SDK only after the mock build launches successfully.
 
+If you do not have a paid Apple Developer Program membership, skip directly to [Free Apple Account / Personal Team](#free-apple-account--personal-team) and use the **Rokid Lyrics Personal** scheme instead; see [`docs/PERSONAL_TEAM_MODE.md`](PERSONAL_TEAM_MODE.md) for what that build does and does not include.
+
 The project targets iOS 17 or later. Apple recommends a physical device for features and conditions a simulator cannot reproduce, and documents automatic signing as the normal way to register a connected device and create a development provisioning profile: [Running your app on simulated or physical devices](https://developer.apple.com/documentation/xcode/running-your-app-on-simulated-or-physical-devices).
 
 ## What you need
@@ -297,6 +299,55 @@ Do not begin here until the Mock scheme signs, installs, and launches. This sect
 8. Never select an iOS Simulator for this configuration; the inspected proprietary framework has no Simulator slice.
 9. Verify both targets still resolve to the intended team, bundle IDs, and App Group.
 10. Build and install. Treat success only as a linked/signed device build until authorization, discovery, display, audio, and reconnect tests are actually recorded.
+
+## Free Apple Account / Personal Team
+
+This section installs **Rokid Lyrics Personal** on your own iPhone with a free Apple ID and no paid Apple Developer Program membership. It replaces sections 2–9 above: it does not register an App ID, an App Group, or the ShazamKit App Service in the Apple Developer portal, because the `RokidLyricsPersonal` target requests none of those capabilities. See [`docs/PERSONAL_TEAM_MODE.md`](PERSONAL_TEAM_MODE.md) for exactly what this build does and does not include, and why.
+
+Complete [1. Clone and inspect the project](#1-clone-and-inspect-the-project) first so Xcode, XcodeGen, and the repository are ready.
+
+1. Create your local configuration and set a unique bundle ID you control:
+
+   ```sh
+   cp Config/Local.xcconfig.example Config/Local.xcconfig
+   ```
+
+   Edit `ROKID_LYRICS_BUNDLE_ID` in `Config/Local.xcconfig` to a reverse-DNS identifier you control, for example based on your name. Leave `ROKID_LYRICS_DEVELOPMENT_TEAM` blank — Personal Team signing does not use a typed Team ID the way a paid membership does; Xcode assigns your Personal Team once you select it in Signing & Capabilities in step 10 below.
+
+2. Generate and open the project:
+
+   ```sh
+   xcodegen generate
+   open RokidLyrics.xcodeproj
+   ```
+
+3. In Xcode, choose **Xcode → Settings**.
+4. Select **Accounts**.
+5. Click **+**, select **Apple Account**, and sign in with your regular (free) Apple ID.
+6. Xcode creates a **Personal Team** named after your Apple Account, shown in the Team list as "\<Your Name\> (Personal Team)." No paid enrollment is required to reach this state. Apple documents adding an account and using automatic signing at [Running your app on simulated or physical devices](https://developer.apple.com/documentation/xcode/running-your-app-on-simulated-or-physical-devices).
+7. Close Settings.
+8. In Xcode's scheme menu, select **Rokid Lyrics Personal**.
+9. Connect your iPhone with a data-capable USB cable, unlock it, and select it as the run destination — not a Simulator and not **Any iOS Device**.
+10. In the Project navigator, select the blue **RokidLyrics** project, then the **RokidLyricsPersonal** target, then open **Signing & Capabilities**.
+11. Confirm **Automatically manage signing** is enabled.
+12. Set **Team** to your Personal Team.
+13. Confirm **Bundle Identifier** resolves to your `ROKID_LYRICS_BUNDLE_ID` value and that Xcode reports no signing error. `Rokid Lyrics Personal` has no capability cards in this tab by design — its entitlements file is empty — so there is nothing else to configure here.
+14. On the iPhone, enable Developer Mode: **Settings → Privacy & Security → Security → Developer Mode**, turn it on, tap **Restart**, unlock after restart, then tap **Enable** and enter the passcode. This is Apple's documented procedure: [Enabling Developer Mode on a device](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device).
+15. If the iPhone asks whether to trust the computer, tap **Trust** and enter the passcode. In Xcode, open **Window → Devices and Simulators** (or **Device Hub**) and let pairing finish.
+16. In Xcode, choose **Product → Run**. If Xcode offers to register the device or repair signing, review the selected Personal Team and allow it.
+17. If iOS reports an untrusted developer, open **Settings → General → VPN & Device Management** on the iPhone, trust your own Apple Account, and run again.
+
+### Bundle identifier requirements
+
+A Personal Team can sign any bundle identifier you have not already registered elsewhere under that Apple ID, following the same reverse-DNS uniqueness rule as a paid account: [Register an App ID](https://developer.apple.com/help/account/identifiers/register-an-app-id). `Rokid Lyrics Personal` intentionally reuses the same `ROKID_LYRICS_BUNDLE_ID` value as the main app target rather than introducing a second identifier to manage; it does not need a Share Extension identifier at all, because that target is never built for this scheme.
+
+### Provisioning validity
+
+Expect to periodically re-run **Product → Run** from Xcode to reinstall the app as its free/Personal Team development provisioning profile ages, particularly after the device has not been reconnected to Xcode for a while. This project has not verified a specific validity period against current, official Apple documentation, and public reports of the exact duration vary; do not treat any specific number of days as authoritative here. Re-running from Xcode with the device connected is the supported recovery step regardless of the exact duration.
+
+### What this path does not require
+
+Unlike the numbered sections above, Free Apple Account / Personal Team setup does not involve registering an App ID in the Apple Developer portal, registering an App Group, enabling the ShazamKit App Service, or an Account Holder/Admin role. If you later enroll in the paid Apple Developer Program, follow the numbered sections above for the full **Rokid Lyrics Mock** or **Rokid Lyrics Hardware** capabilities; see the upgrade path in [`docs/PERSONAL_TEAM_MODE.md`](PERSONAL_TEAM_MODE.md#upgrade-path). Nothing about completing this section changes or removes the other two schemes.
 
 ## Troubleshooting without destructive changes
 

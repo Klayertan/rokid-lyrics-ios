@@ -10,7 +10,11 @@ struct HomeView: View {
                 connectionAndRecognition
                 currentSong
                 GlassesSimulatorView(model: model.currentDisplayModel, settings: model.settings)
-                controls
+                if model.capabilities.shazamRecognitionAvailable {
+                    controls
+                } else {
+                    unavailableRecognitionNotice
+                }
                 limitationNote
             }
             .padding()
@@ -129,6 +133,29 @@ struct HomeView: View {
             }
             .buttonStyle(.bordered)
             .disabled(model.synchronizationState == .idle)
+        }
+    }
+
+    private var unavailableRecognitionNotice: some View {
+        AppPanel {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Automatic Recognition", systemImage: "waveform.slash")
+                    .font(.headline)
+                Text("Unavailable in Personal Team mode")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Button {
+                    model.selectedTab = .search
+                } label: {
+                    Label("Search Song", systemImage: "magnifyingglass")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.mint)
+                .foregroundStyle(.black)
+                .controlSize(.large)
+            }
         }
     }
 
