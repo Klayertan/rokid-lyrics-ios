@@ -47,6 +47,14 @@
     <string>$(ROKID_LYRICS_BUILD_MODE)</string>
     <key>RokidLyricsDefaultMockMode</key>
     <string>$(ROKID_LYRICS_DEFAULT_MOCK_MODE)</string>
+    <key>RokidLyricsPersonalTeamMode</key>
+    <string>$(ROKID_LYRICS_PERSONAL_TEAM_MODE)</string>
+    <key>RokidLyricsShazamAvailable</key>
+    <string>$(ROKID_LYRICS_SHAZAM_AVAILABLE)</string>
+    <key>RokidLyricsShareExtensionAvailable</key>
+    <string>$(ROKID_LYRICS_SHARE_EXTENSION_AVAILABLE)</string>
+    <key>RokidLyricsAppGroupAvailable</key>
+    <string>$(ROKID_LYRICS_APP_GROUP_AVAILABLE)</string>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>

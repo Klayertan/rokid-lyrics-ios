@@ -11,6 +11,8 @@ configs:
   Mock-Release: release
   Rokid-Hardware-Debug: debug
   Rokid-Hardware-Release: release
+  Personal-Debug: debug
+  Personal-Release: release
 configFiles:
   Debug: Config/Mock.xcconfig
   Release: Config/Mock.xcconfig
@@ -18,6 +20,8 @@ configFiles:
   Mock-Release: Config/Mock.xcconfig
   Rokid-Hardware-Debug: Config/RokidHardware.xcconfig
   Rokid-Hardware-Release: Config/RokidHardware.xcconfig
+  Personal-Debug: Config/Personal.xcconfig
+  Personal-Release: Config/Personal.xcconfig
 packages:
   RokidLyricsPackage:
     path: .
@@ -80,6 +84,31 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: RokidLyricsShareExtension/Info.plist
         CODE_SIGN_ENTITLEMENTS: RokidLyricsShareExtension/RokidLyricsShareExtension.entitlements
+  RokidLyricsPersonal:
+    type: application
+    platform: iOS
+    sources:
+      - path: RokidLyrics
+    resources:
+      - path: RokidLyrics/Resources
+    dependencies:
+      - package: RokidLyricsPackage
+        product: RokidLyricsCore
+      - package: RokidLyricsPackage
+        product: RokidLyricsServices
+    configFiles:
+      Personal-Debug: Config/Personal.xcconfig
+      Personal-Release: Config/Personal.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: "$(ROKID_LYRICS_BUNDLE_ID)"
+        PRODUCT_NAME: Rokid Lyrics Personal
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: RokidLyrics/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: RokidLyrics/Resources/RokidLyricsPersonal.entitlements
+        INFOPLIST_KEY_CFBundleDisplayName: Rokid Lyrics (Personal)
 schemes:
   RokidLyrics:
     build:
@@ -124,3 +153,15 @@ schemes:
       config: Rokid-Hardware-Debug
     archive:
       config: Rokid-Hardware-Release
+  Rokid Lyrics Personal:
+    build:
+      targets:
+        RokidLyricsPersonal: all
+    run:
+      config: Personal-Debug
+    profile:
+      config: Personal-Release
+    analyze:
+      config: Personal-Debug
+    archive:
+      config: Personal-Release

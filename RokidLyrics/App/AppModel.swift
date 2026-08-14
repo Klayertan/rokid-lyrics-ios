@@ -14,6 +14,7 @@ enum AppTab: Hashable {
 @MainActor
 @Observable
 final class AppModel {
+    let capabilities: AppCapabilities
     var settings: AppSettings
 
     var selectedTab: AppTab = .home
@@ -98,6 +99,11 @@ final class AppModel {
         let correctionStore = UserDefaultsSyncCorrectionStore()
 
         self.settings = settings
+        capabilities = AppCapabilitiesResolver.resolve(
+            infoDictionary: Bundle.main.infoDictionary,
+            shazamCompiled: Self.isShazamCompiled,
+            rokidHardwareCompiled: Self.isRokidHardwareCompiled
+        )
 
         #if ROKID_SDK_AVAILABLE && canImport(RGCxrClient)
             var resolvedCoordinator: RokidCXRCoordinator?
@@ -125,7 +131,11 @@ final class AppModel {
             self.transport = transport ?? MockRokidDisplayTransport()
         #endif
 
-        self.identificationService = identificationService ?? ShazamTrackIdentificationService()
+        self.identificationService =
+            identificationService
+            ?? (capabilities.shazamRecognitionAvailable
+                ? ShazamTrackIdentificationService()
+                : UnavailableTrackIdentificationService())
         self.lyricsProvider = lyricsProvider ?? LRCLibLyricsProvider(cache: cache)
         self.liveLyricsProvider = liveLyricsProvider ?? LRCLibLyricsProvider()
         scorer = LyricsMatchScorer()
@@ -152,20 +162,27 @@ final class AppModel {
     }
 
     func consumeSharedDraft() async {
-        guard let draft = await sharedInbox.take() else { return }
-        searchSelectionUsesIdentifiedTrack = false
-        manualSearchTitle = draft.title ?? ""
-        manualSearchArtist = draft.artist ?? ""
-        pendingSharedURL = draft.url
-        statusMessage =
-            draft.requiresConfirmation
-            ? "Confirm the shared song details"
-            : "Shared song ready to search"
-        selectedTab = .search
+        guard capabilities.appGroupAvailable, let draft = await sharedInbox.take() else { return }
+        applyDraft(draft, statusPrefix: "Confirm the shared song details", readyMessage: "Shared song ready to search")
+    }
+
+    /// Manual fallback for builds without the Share Extension/App Group:
+    /// reuses the same conservative `SharedTrackParser` on text or a URL the
+    /// user pastes directly into the app, without any App Group dependency.
+    func applyPastedShareText(_ raw: String) {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let draft = SharedTrackParser.parse(text: trimmed, url: URL(string: trimmed))
+        applyDraft(draft, statusPrefix: "Confirm the pasted song details", readyMessage: "Pasted song ready to search")
     }
 
     func startLyrics() {
         guard pipelineTask == nil else { return }
+        guard capabilities.shazamRecognitionAvailable else {
+            selectedTab = .search
+            statusMessage = "Automatic recognition is unavailable in Personal Team mode. Search for the song manually."
+            return
+        }
         if settings.recognitionBehavior == .manualSearch {
             selectedTab = .search
             statusMessage = "Enter a song to use manual search"
@@ -320,11 +337,7 @@ final class AppModel {
     }
 
     var isRealRokidSDKCompiled: Bool {
-        #if ROKID_SDK_AVAILABLE && canImport(RGCxrClient)
-            true
-        #else
-            false
-        #endif
+        capabilities.rokidHardwareAvailable
     }
 
     var compiledBuildModeText: String {
@@ -760,6 +773,14 @@ final class AppModel {
                 activeMode: activeRuntimeModeText,
                 sdkAvailable: isRealRokidSDKCompiled
             ),
+            capabilities: .init(
+                buildMode: capabilities.buildMode,
+                personalTeamMode: capabilities.personalTeamMode,
+                shazamRecognitionAvailable: capabilities.shazamRecognitionAvailable,
+                shareExtensionAvailable: capabilities.shareExtensionAvailable,
+                appGroupAvailable: capabilities.appGroupAvailable,
+                rokidHardwareAvailable: capabilities.rokidHardwareAvailable
+            ),
             audioSession: .init(
                 category: audio.category,
                 mode: audio.mode,
@@ -1166,6 +1187,15 @@ final class AppModel {
         )
     }
 
+    private func applyDraft(_ draft: SharedTrackDraft, statusPrefix: String, readyMessage: String) {
+        searchSelectionUsesIdentifiedTrack = false
+        manualSearchTitle = draft.title ?? ""
+        manualSearchArtist = draft.artist ?? ""
+        pendingSharedURL = draft.url
+        statusMessage = draft.requiresConfirmation ? statusPrefix : readyMessage
+        selectedTab = .search
+    }
+
     private func requireIsolatedHardwareMode() -> Bool {
         guard !isLyricsSessionActive, pipelineTask == nil, glassesMicrophoneTask == nil else {
             lastError = "Stop the lyrics pipeline and microphone test before an isolated hardware action."
@@ -1304,6 +1334,22 @@ final class AppModel {
     private func report(_ error: Error) {
         lastError = error.localizedDescription
         statusMessage = "Action needs attention"
+    }
+
+    private static var isShazamCompiled: Bool {
+        #if ROKID_LYRICS_SHAZAM_AVAILABLE
+            true
+        #else
+            false
+        #endif
+    }
+
+    private static var isRokidHardwareCompiled: Bool {
+        #if ROKID_SDK_AVAILABLE && canImport(RGCxrClient)
+            true
+        #else
+            false
+        #endif
     }
 
 }

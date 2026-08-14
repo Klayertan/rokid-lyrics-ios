@@ -122,6 +122,15 @@ struct SafeDeviceDiagnosticReport: Encodable {
         let sdkAvailable: Bool
     }
 
+    struct Capabilities: Encodable {
+        let buildMode: String
+        let personalTeamMode: Bool
+        let shazamRecognitionAvailable: Bool
+        let shareExtensionAvailable: Bool
+        let appGroupAvailable: Bool
+        let rokidHardwareAvailable: Bool
+    }
+
     struct Audio: Encodable {
         let category: String
         let mode: String
@@ -237,9 +246,10 @@ struct SafeDeviceDiagnosticReport: Encodable {
         let hasNextLine: Bool
     }
 
-    let schemaVersion = 2
+    let schemaVersion = 3
     let generatedAt: Date
     let build: Build
+    let capabilities: Capabilities
     let audioSession: Audio
     let shazamKit: Recognition
     let lrclib: Lyrics
